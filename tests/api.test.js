@@ -128,4 +128,78 @@ test('API REST: /api/security/alerts devuelve el listado de alertas de seguridad
   assert.ok(data.alerts.length > 0);
 });
 
+test('API REST: /api/inventory/:id/consume permite consumo individualizado y guarda historial de consumo', async () => {
+  // 1. Crear producto con 12 huevos
+  const createRes = await fetch(`${baseUrl}/inventory`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: 'Huevos de prueba',
+      category: 'dairy',
+      location: 'fridge',
+      quantity: '12 huevos',
+      expiryDate: '2026-09-30'
+    })
+  });
+  assert.strictEqual(createRes.status, 201);
+  const created = await createRes.json();
+  assert.strictEqual(created.totalUnits, 12);
+  assert.strictEqual(created.remainingUnits, 12);
+
+  // 2. Consumo parcial 1: Ayer consumí 4 huevos
+  const consumeRes1 = await fetch(`${baseUrl}/inventory/${created.id}/consume`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      amount: 4,
+      date: '2026-09-05',
+      note: 'Tortilla familiar'
+    })
+  });
+  assert.strictEqual(consumeRes1.status, 200);
+  const data1 = await consumeRes1.json();
+  assert.strictEqual(data1.ok, true);
+  assert.strictEqual(data1.finished, false);
+  assert.strictEqual(data1.remainingUnits, 8);
+  assert.strictEqual(data1.item.consumedHistory.length, 1);
+  assert.strictEqual(data1.item.consumedHistory[0].amount, 4);
+  assert.strictEqual(data1.item.consumedHistory[0].date, '2026-09-05');
+
+  // 3. Consumo parcial 2: Hoy consumí 2 huevos
+  const consumeRes2 = await fetch(`${baseUrl}/inventory/${created.id}/consume`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      amount: 2,
+      date: '2026-09-06'
+    })
+  });
+  assert.strictEqual(consumeRes2.status, 200);
+  const data2 = await consumeRes2.json();
+  assert.strictEqual(data2.ok, true);
+  assert.strictEqual(data2.finished, false);
+  assert.strictEqual(data2.remainingUnits, 6);
+  assert.strictEqual(data2.item.consumedHistory.length, 2);
+
+  // 4. Consumo total del restante: 6 huevos
+  const consumeRes3 = await fetch(`${baseUrl}/inventory/${created.id}/consume`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      amount: 6,
+      date: '2026-09-06'
+    })
+  });
+  assert.strictEqual(consumeRes3.status, 200);
+  const data3 = await consumeRes3.json();
+  assert.strictEqual(data3.ok, true);
+  assert.strictEqual(data3.finished, true);
+  assert.strictEqual(data3.remainingUnits, 0);
+
+  // 5. Verificar que ya no está en el inventario activo
+  const checkRes = await fetch(`${baseUrl}/inventory`);
+  const allInv = await checkRes.json();
+  assert.ok(!allInv.some(i => i.id === created.id));
+});
+
 

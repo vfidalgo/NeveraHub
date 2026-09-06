@@ -125,6 +125,42 @@ function itemMatchesKeyword(itemName, keyword) {
   return normItem.includes(normKw) || normKw.includes(normItem);
 }
 
+function parseQuantityUnits(quantityStr) {
+  if (typeof quantityStr === 'number') {
+    return { totalUnits: quantityStr, remainingUnits: quantityStr, unitName: 'uds' };
+  }
+  if (!quantityStr || typeof quantityStr !== 'string') {
+    return { totalUnits: 1, remainingUnits: 1, unitName: 'ud' };
+  }
+  const str = quantityStr.trim();
+  
+  // Docenas (1 docena = 12 unidades)
+  const matchDocena = str.match(/(\d+)?\s*docenas?/i);
+  if (matchDocena) {
+    const dCount = matchDocena[1] ? parseInt(matchDocena[1], 10) : 1;
+    return { totalUnits: dCount * 12, remainingUnits: dCount * 12, unitName: 'huevos' };
+  }
+
+  // Media docena = 6
+  if (/media\s+docena/i.test(str)) {
+    return { totalUnits: 6, remainingUnits: 6, unitName: 'huevos' };
+  }
+
+  // Número al inicio: ej. "24 huevos", "12 uds", "2 bricks", "4 latas", "6", etc.
+  const matchNum = str.match(/^(\d+)\s*(.*)$/);
+  if (matchNum) {
+    const num = parseInt(matchNum[1], 10);
+    const unitPart = (matchNum[2] || '').trim();
+    const isWeightVolumeSingle = /^(kg|kilos?|g|gramos?|l|litros?|ml|bote|paquete|tarro|bolsa)\b/i.test(unitPart);
+    if (isWeightVolumeSingle && num === 1) {
+      return { totalUnits: 1, remainingUnits: 1, unitName: unitPart || 'ud' };
+    }
+    return { totalUnits: num, remainingUnits: num, unitName: unitPart || 'uds' };
+  }
+
+  return { totalUnits: 1, remainingUnits: 1, unitName: 'ud' };
+}
+
 function analyzeInventory(inventory, referenceDateStr) {
   return inventory.map(item => {
     const daysLeft = calculateDaysRemaining(item.expiryDate, referenceDateStr);
@@ -142,8 +178,24 @@ function analyzeInventory(inventory, referenceDateStr) {
       urgencyWeight = 1;
     }
 
+    let totalUnits = typeof item.totalUnits === 'number' ? item.totalUnits : null;
+    let remainingUnits = typeof item.remainingUnits === 'number' ? item.remainingUnits : null;
+    let unitName = item.unitName || null;
+    const consumedHistory = Array.isArray(item.consumedHistory) ? item.consumedHistory : [];
+
+    if (totalUnits === null || remainingUnits === null) {
+      const parsed = parseQuantityUnits(item.quantity);
+      if (totalUnits === null) totalUnits = parsed.totalUnits;
+      if (remainingUnits === null) remainingUnits = parsed.remainingUnits;
+      if (!unitName) unitName = parsed.unitName;
+    }
+
     return {
       ...item,
+      totalUnits,
+      remainingUnits,
+      unitName: unitName || 'uds',
+      consumedHistory,
       daysLeft,
       status,
       urgencyWeight
@@ -235,6 +287,8 @@ function getRecommendedRecipes(inventory, referenceDateStr) {
 module.exports = {
   RECIPE_CATALOG,
   calculateDaysRemaining,
+  normalize,
+  parseQuantityUnits,
   analyzeInventory,
   getRecommendedRecipes
 };

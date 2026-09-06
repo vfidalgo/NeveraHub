@@ -273,11 +273,17 @@ router.post('/inventory', (req, res) => {
   }
 
   const todayStr = new Date().toISOString().split('T')[0];
+  const unitInfo = recipeEngine.parseQuantityUnits ? recipeEngine.parseQuantityUnits(quantity || '1 ud') : { totalUnits: 1, remainingUnits: 1, unitName: 'ud' };
+
   const newItem = db.add('inventory', {
     name,
     category: category || 'other',
     location: location || 'fridge',
     quantity: quantity || '1 ud',
+    totalUnits: typeof req.body.totalUnits === 'number' ? req.body.totalUnits : unitInfo.totalUnits,
+    remainingUnits: typeof req.body.remainingUnits === 'number' ? req.body.remainingUnits : unitInfo.remainingUnits,
+    unitName: req.body.unitName || unitInfo.unitName,
+    consumedHistory: Array.isArray(req.body.consumedHistory) ? req.body.consumedHistory : [],
     addedDate: todayStr,
     expiryDate
   });
@@ -292,6 +298,77 @@ router.post('/inventory', (req, res) => {
   supabaseClient.syncInventoryToCloud(newItem);
 
   res.status(201).json(newItem);
+});
+
+// Endpoint de consumo individualizado / parcial
+router.post('/inventory/:id/consume', (req, res) => {
+  const inventory = db.get('inventory');
+  const item = inventory.find(i => i.id === req.params.id);
+  if (!item) return res.status(404).json({ error: 'Producto no encontrado en el inventario' });
+
+  let unitInfo = {
+    totalUnits: typeof item.totalUnits === 'number' ? item.totalUnits : 1,
+    remainingUnits: typeof item.remainingUnits === 'number' ? item.remainingUnits : 1,
+    unitName: item.unitName || 'uds'
+  };
+
+  if (typeof item.totalUnits !== 'number' || typeof item.remainingUnits !== 'number') {
+    const parsed = recipeEngine.parseQuantityUnits ? recipeEngine.parseQuantityUnits(item.quantity) : { totalUnits: 1, remainingUnits: 1, unitName: 'ud' };
+    unitInfo.totalUnits = parsed.totalUnits;
+    unitInfo.remainingUnits = parsed.remainingUnits;
+    if (!item.unitName) unitInfo.unitName = parsed.unitName;
+  }
+
+  const amountRequested = typeof req.body.amount === 'number' ? req.body.amount : parseInt(req.body.amount || '1', 10);
+  const amountToConsume = Math.max(1, isNaN(amountRequested) ? 1 : amountRequested);
+  const consumeDate = req.body.date || new Date().toISOString().split('T')[0];
+  const note = req.body.note || '';
+
+  const actualConsumed = Math.min(amountToConsume, unitInfo.remainingUnits);
+  const newRemaining = Math.max(0, unitInfo.remainingUnits - actualConsumed);
+
+  if (!Array.isArray(item.consumedHistory)) {
+    item.consumedHistory = [];
+  }
+
+  const logEntry = {
+    id: `c_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    date: consumeDate,
+    amount: actualConsumed,
+    note: note
+  };
+  item.consumedHistory.push(logEntry);
+
+  item.totalUnits = unitInfo.totalUnits;
+  item.remainingUnits = newRemaining;
+  item.unitName = unitInfo.unitName;
+
+  if (newRemaining <= 0) {
+    // Si ya no quedan unidades, retirar del inventario activo
+    db.remove('inventory', item.id);
+    return res.json({
+      ok: true,
+      finished: true,
+      message: `Producto ${item.name} completamente consumido.`,
+      consumedEntry: logEntry,
+      remainingUnits: 0,
+      totalUnits: unitInfo.totalUnits,
+      item
+    });
+  } else {
+    // Actualizar cantidad textual descriptiva y persistir
+    item.quantity = `${newRemaining} ${unitInfo.unitName} (de ${unitInfo.totalUnits})`;
+    const updated = db.update('inventory', item.id, item);
+    return res.json({
+      ok: true,
+      finished: false,
+      message: `Se han consumido ${actualConsumed} ${unitInfo.unitName} de ${item.name}. Quedan ${newRemaining}.`,
+      consumedEntry: logEntry,
+      remainingUnits: newRemaining,
+      totalUnits: unitInfo.totalUnits,
+      item: updated
+    });
+  }
 });
 
 router.put('/inventory/:id', (req, res) => {

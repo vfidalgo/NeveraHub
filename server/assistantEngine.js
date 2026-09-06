@@ -84,11 +84,16 @@ class AssistantEngine {
     }
 
     // 6. Inventario: Consumir producto
-    if (clean.includes('consumido') || clean.includes('comido') || clean.includes('gastado') || clean.includes('ya no queda') || clean.includes('hemos gastado') || clean.includes('elimina')) {
-      return this.handleConsumeInventory(clean, db);
+    if (clean.includes('consum') || clean.includes('comí') || clean.includes('comi') || clean.includes('comido') || clean.includes('gast') || clean.includes('ya no queda') || clean.includes('se ha acabado') || clean.includes('se han acabado') || clean.includes('elimina')) {
+      return this.handleConsumeInventory(clean, db, refDate);
     }
 
-    // 7. Inventario: Consultar qué hay
+    // 7. Inventario: Consultar stock / cuántos quedan
+    if (clean.includes('cuántos') || clean.includes('cuantos') || clean.includes('cuántas') || clean.includes('cuantas') || clean.includes('cuánto queda') || clean.includes('cuanto queda') || clean.includes('cuántos quedan') || clean.includes('cuantos quedan')) {
+      return this.handleInventoryStockQuery(clean, db);
+    }
+
+    // 8. Inventario: Consultar qué hay
     if (clean.includes('qué hay en la nevera') || clean.includes('que hay en la nevera') || clean.includes('qué tenemos en la nevera') || clean.includes('qué hay en la despensa') || clean.includes('ver inventario')) {
       return this.handleListInventory(clean, db);
     }
@@ -368,19 +373,35 @@ class AssistantEngine {
     };
   }
 
-  handleConsumeInventory(query, db) {
+  handleConsumeInventory(query, db, currentDate = new Date()) {
     const inventory = db.get('inventory') || [];
     let match = null;
 
-    for (const item of inventory) {
-      const lower = item.name.toLowerCase();
-      const cleanQ = query.toLowerCase();
-      const words = lower.split(' ').filter(w => w.length > 3);
-      if (cleanQ.includes(lower) || words.some(w => cleanQ.includes(w))) {
-        match = item;
-        break;
+    // Detectar si se menciona una fecha (hoy, ayer)
+    let consumeDate = currentDate.toISOString().split('T')[0];
+    if (query.includes('ayer')) {
+      const yest = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
+      consumeDate = yest.toISOString().split('T')[0];
+    }
+
+    // Detectar cantidad numérica o palabras numéricas en español
+    const wordNums = { 'un': 1, 'una': 1, 'uno': 1, 'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5, 'seis': 6, 'ocho': 8, 'diez': 10, 'doce': 12, 'media docena': 6, 'una docena': 12 };
+    let amountSpecified = null;
+
+    const numMatch = query.match(/\b(\d+)\b/);
+    if (numMatch) {
+      amountSpecified = parseInt(numMatch[1], 10);
+    } else {
+      for (const [w, val] of Object.entries(wordNums)) {
+        const r = new RegExp(`\\b${w}\\b`, 'i');
+        if (r.test(query)) {
+          amountSpecified = val;
+          break;
+        }
       }
     }
+
+    match = this.findBestMatchingInventoryItem(query, inventory);
 
     if (!match) {
       return {
@@ -390,8 +411,69 @@ class AssistantEngine {
       };
     }
 
+    // Obtener información de unidades
+    let totalUnits = typeof match.totalUnits === 'number' ? match.totalUnits : null;
+    let remainingUnits = typeof match.remainingUnits === 'number' ? match.remainingUnits : null;
+    let unitName = match.unitName || 'uds';
+
+    if (totalUnits === null || remainingUnits === null) {
+      const parsed = recipeEngine.parseQuantityUnits ? recipeEngine.parseQuantityUnits(match.quantity) : { totalUnits: 1, remainingUnits: 1, unitName: 'uds' };
+      totalUnits = parsed.totalUnits;
+      remainingUnits = parsed.remainingUnits;
+      unitName = parsed.unitName;
+    }
+
+    if (!Array.isArray(match.consumedHistory)) {
+      match.consumedHistory = [];
+    }
+
+    // Si tiene unidades múltiples (> 1) y se especificó una cantidad menor a las restantes:
+    if (remainingUnits > 1 && amountSpecified && amountSpecified < remainingUnits) {
+      const actualConsumed = amountSpecified;
+      const newRemaining = remainingUnits - actualConsumed;
+
+      const logEntry = {
+        id: `c_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        date: consumeDate,
+        amount: actualConsumed,
+        note: 'Consumo por voz'
+      };
+      match.consumedHistory.push(logEntry);
+      match.totalUnits = totalUnits;
+      match.remainingUnits = newRemaining;
+      match.unitName = unitName;
+      match.quantity = `${newRemaining} ${unitName} (de ${totalUnits})`;
+
+      db.update('inventory', match.id, match);
+
+      const locEs = match.location === 'fridge' ? 'la nevera' : (match.location === 'pantry' ? 'la despensa' : 'el congelador');
+      const dayLabel = query.includes('ayer') ? 'de ayer' : 'de hoy';
+      const spoken = `Anotado el consumo ${dayLabel}: has consumido ${actualConsumed} ${unitName} de ${match.name}. Te quedan ${newRemaining} disponibles en ${locEs}.`;
+
+      return {
+        spokenResponse: spoken,
+        actionTaken: true,
+        actionType: 'inventory_consume_partial',
+        actionData: match,
+        card: {
+          title: `Consumo Parcial: ${match.name}`,
+          text: `📉 Consumidas: ${actualConsumed} ${unitName} (${dayLabel})\n📦 Quedan: ${newRemaining} / ${totalUnits} ${unitName}`
+        }
+      };
+    }
+
+    // Si se consumió todo lo que quedaba o no se especificó cantidad menor:
+    const consumedAmount = (amountSpecified && amountSpecified >= remainingUnits) ? remainingUnits : (remainingUnits || 1);
+    const logEntry = {
+      id: `c_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      date: consumeDate,
+      amount: consumedAmount,
+      note: 'Consumo total'
+    };
+    match.consumedHistory.push(logEntry);
     db.remove('inventory', match.id);
-    const spoken = 'De acuerdo, he retirado ' + match.name + ' del inventario.';
+
+    const spoken = 'De acuerdo, he retirado ' + match.name + ' del inventario porque se ha terminado.';
 
     return {
       spokenResponse: spoken,
@@ -401,6 +483,75 @@ class AssistantEngine {
       card: {
         title: 'Producto Consumido',
         text: '🗑️ ' + match.name + ' retirado del inventario.'
+      }
+    };
+  }
+
+  findBestMatchingInventoryItem(query, inventory) {
+    let bestMatch = null;
+    let bestScore = 0;
+    const cleanQ = query.toLowerCase();
+
+    for (const item of inventory) {
+      const lower = item.name.toLowerCase();
+      if (cleanQ.includes(lower)) {
+        const score = lower.length * 10;
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = item;
+        }
+      } else {
+        const words = lower.split(' ').filter(w => w.length > 3);
+        const matchWords = words.filter(w => cleanQ.includes(w));
+        if (matchWords.length > 0) {
+          const score = matchWords.length * 5 + matchWords.reduce((acc, w) => acc + w.length, 0);
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = item;
+          }
+        }
+      }
+    }
+    return bestMatch;
+  }
+
+  handleInventoryStockQuery(query, db) {
+    const inventory = db.get('inventory') || [];
+    const match = this.findBestMatchingInventoryItem(query, inventory);
+
+    if (!match) {
+      return {
+        spokenResponse: 'No encontré ese producto en la nevera ni en la despensa.',
+        actionTaken: false,
+        actionType: 'inventory_stock'
+      };
+    }
+
+    const totalUnits = typeof match.totalUnits === 'number' ? match.totalUnits : (recipeEngine.parseQuantityUnits(match.quantity).totalUnits || 1);
+    const remainingUnits = typeof match.remainingUnits === 'number' ? match.remainingUnits : (recipeEngine.parseQuantityUnits(match.quantity).remainingUnits || 1);
+    const unitName = match.unitName || 'uds';
+    const history = match.consumedHistory || [];
+
+    const locEs = match.location === 'fridge' ? 'la nevera' : (match.location === 'pantry' ? 'la despensa' : 'el congelador');
+
+    let historyText = '';
+    if (history.length > 0) {
+      const parts = history.slice(-3).map(h => `${h.amount} el día ${h.date}`);
+      historyText = ` Se han consumido ${parts.join(' y ')}.`;
+    }
+
+    const spoken = totalUnits > 1
+      ? `Te quedan ${remainingUnits} ${unitName} de ${match.name} (de los ${totalUnits} iniciales) en ${locEs}.${historyText}`
+      : `Tienes ${match.quantity} de ${match.name} en ${locEs}.`;
+
+    return {
+      spokenResponse: spoken,
+      actionTaken: false,
+      actionType: 'inventory_stock',
+      actionData: match,
+      card: {
+        title: `Stock: ${match.name}`,
+        text: `📦 Disponibles: ${remainingUnits} / ${totalUnits} ${unitName}\n📍 Ubicación: ${locEs}\n🗓️ Caducidad: ${match.expiryDate}`
       }
     };
   }

@@ -36,7 +36,7 @@ test('Asistente Virtual: Consulta de Menús (Comida y Cena)', () => {
   const resSamuel = assistantEngine.processQuery('¿Qué come Samuel hoy?', db, refDate);
   assert.strictEqual(resSamuel.actionType, 'menu');
   assert.ok(resSamuel.spokenResponse.includes('Samuel'));
-  assert.ok(resSamuel.spokenResponse.includes('Puré') || resSamuel.spokenResponse.includes('calabaza') || resSamuel.spokenResponse.includes('lentejas'));
+  assert.ok(resSamuel.spokenResponse.includes('guardería') || resSamuel.spokenResponse.includes('Puré'));
 });
 
 test('Asistente Virtual: Recomendación de Recetas Anti-Desperdicio', () => {
@@ -101,4 +101,49 @@ test('Asistente Virtual: Consulta sin coincidencia (Fallback)', () => {
   assert.strictEqual(res.actionTaken, false);
   assert.strictEqual(res.actionType, 'help');
   assert.ok(res.spokenResponse.includes('no estoy seguro'));
+});
+
+test('Asistente Virtual: Consumo parcial de unidades y consulta de stock', () => {
+  const refDate = new Date('2026-09-06T12:00:00Z');
+  
+  // 1. Añadir 12 huevos para la prueba con nombre único
+  const newItem = db.add('inventory', {
+    name: 'Huevos de granja test',
+    category: 'dairy',
+    location: 'fridge',
+    quantity: '12 huevos',
+    totalUnits: 12,
+    remainingUnits: 12,
+    unitName: 'huevos',
+    consumedHistory: [],
+    addedDate: '2026-09-04',
+    expiryDate: '2026-09-25'
+  });
+
+  try {
+    // 2. "Ayer consumí 4 huevos de granja test"
+    const res1 = assistantEngine.processQuery('Ayer consumí 4 huevos de granja test', db, refDate);
+    assert.strictEqual(res1.actionTaken, true);
+    assert.strictEqual(res1.actionType, 'inventory_consume_partial');
+    assert.ok(res1.spokenResponse.includes('4'));
+    assert.ok(res1.spokenResponse.includes('8')); // quedan 8
+    assert.ok(res1.spokenResponse.includes('ayer'));
+
+    // 3. "Hoy he consumido 2 huevos de granja test"
+    const res2 = assistantEngine.processQuery('He consumido 2 huevos de granja test', db, refDate);
+    assert.strictEqual(res2.actionTaken, true);
+    assert.strictEqual(res2.actionType, 'inventory_consume_partial');
+    assert.ok(res2.spokenResponse.includes('2'));
+    assert.ok(res2.spokenResponse.includes('6')); // quedan 6
+
+    // 4. "¿Cuántos huevos de granja test quedan?"
+    const res3 = assistantEngine.processQuery('¿Cuántos huevos de granja test quedan?', db, refDate);
+    assert.strictEqual(res3.actionTaken, false);
+    assert.strictEqual(res3.actionType, 'inventory_stock');
+    assert.ok(res3.spokenResponse.includes('6')); // quedan 6
+    assert.ok(res3.spokenResponse.includes('12')); // de 12 iniciales
+  } finally {
+    // 5. Limpieza garantizada
+    db.remove('inventory', newItem.id);
+  }
 });

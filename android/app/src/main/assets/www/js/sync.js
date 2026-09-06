@@ -98,6 +98,9 @@ const NeveraSync = {
   deleteInventoryItem(id) {
     return this.request(`/inventory/${id}`, { method: 'DELETE' });
   },
+  consumeInventoryItem(id, data = {}) {
+    return this.request(`/inventory/${id}/consume`, { method: 'POST', body: JSON.stringify(data) });
+  },
   getRecipeRecommendations() {
     return this.request('/recipes/recommendations');
   },

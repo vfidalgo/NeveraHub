@@ -207,7 +207,7 @@
   "habitLogs": {
     "2026-09-06": {
       "h2": false,
-      "h1": false
+      "h1": true
     }
   },
   "inventory": [
@@ -252,10 +252,42 @@
       "urgent": false
     },
     {
+      "id": "i_huevos_12",
+      "name": "Huevos camperos",
+      "category": "dairy",
+      "location": "fridge",
+      "quantity": "12 huevos",
+      "totalUnits": 12,
+      "remainingUnits": 12,
+      "unitName": "huevos",
+      "consumedHistory": [],
+      "addedDate": "2026-09-04",
+      "expiryDate": "2026-09-22",
+      "urgent": false
+    },
+    {
+      "id": "i_azucar_bote",
+      "name": "Bote de azúcar",
+      "category": "pantry",
+      "location": "pantry",
+      "quantity": "1 bote",
+      "totalUnits": 1,
+      "remainingUnits": 1,
+      "unitName": "bote",
+      "consumedHistory": [],
+      "addedDate": "2026-08-15",
+      "expiryDate": "2027-08-15",
+      "urgent": false
+    },
+    {
       "name": "Leche",
       "category": "dairy",
       "location": "fridge",
       "quantity": "1 ud",
+      "totalUnits": 1,
+      "remainingUnits": 1,
+      "unitName": "ud",
+      "consumedHistory": [],
       "addedDate": "2026-09-06",
       "expiryDate": "2026-09-13",
       "urgent": false,
@@ -266,8 +298,8 @@
     "monday": {
       "name": "Lunes",
       "guilleLunch": "Lentejas con verduras y compota de manzana",
-      "samuelLunch": "Puré suave de lentejas con calabaza y pera",
-      "kidsLunch": "Guille: Lentejas con verduras | Samuel: Puré suave",
+      "samuelLunch": "Fidegua de verduras, merluza al horno\n",
+      "kidsLunch": "Guille: Lentejas con verduras y compota de manzana | Samuel: Fidegua de verduras, merluza al horno\n",
       "parentsLunch": "Ensalada de pasta fría con atún y tomate",
       "dinner": "Pechuga de pollo a la plancha con calabacín salteado"
     },

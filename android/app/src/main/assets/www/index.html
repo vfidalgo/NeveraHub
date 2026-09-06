@@ -248,6 +248,77 @@
     </div>
   </div>
 
+  <!-- MODAL: REGISTRAR CONSUMO DE ALIMENTO -->
+  <div class="modal-overlay" id="modal-consume-inventory" style="display: none;">
+    <div class="modal-content" style="max-width: 520px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 id="consume-modal-title" style="font-size:1.3rem; margin:0;">🍽️ Registrar Consumo</h3>
+        <button class="btn-secondary" style="padding:4px 10px; font-size:1rem; min-height:34px;" onclick="NeveraApp.closeModal('modal-consume-inventory')">✕</button>
+      </div>
+
+      <!-- Resumen de Stock del Producto -->
+      <div style="background:rgba(255,255,255,0.04); border-radius:12px; padding:14px; margin-bottom:14px; border:1px solid rgba(255,255,255,0.08);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <span id="consume-product-name" style="font-size:1.2rem; font-weight:700; color:#ffffff;">Huevos</span>
+            <div id="consume-product-meta" style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">🧊 Nevera</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.78rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Disponibles</div>
+            <div id="consume-product-stock" style="font-size:1.45rem; font-weight:800; color:var(--primary);">6 / 12 uds</div>
+          </div>
+        </div>
+        <div class="item-stock-bar" style="margin-top:10px;">
+          <div id="consume-progress-bar" class="item-stock-fill" style="width: 50%;"></div>
+        </div>
+      </div>
+
+      <!-- Historial de consumos registrados -->
+      <div style="margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <label style="font-size:0.85rem; font-weight:600; color:var(--text-muted);">📜 Historial de consumos previos:</label>
+          <span id="consume-history-total" style="font-size:0.82rem; color:#fcd34d; font-weight:600;">Consumidos: 0</span>
+        </div>
+        <div id="consume-history-list" style="max-height:100px; overflow-y:auto; background:rgba(0,0,0,0.25); border-radius:8px; padding:6px 10px; font-size:0.86rem; border:1px solid rgba(255,255,255,0.05); scrollbar-width:thin;">
+          <!-- Se inyecta dinámicamente -->
+        </div>
+      </div>
+
+      <!-- Selector de unidades a consumir -->
+      <div class="form-group" style="margin-bottom:14px;">
+        <label style="font-size:0.88rem; font-weight:600;">¿Cuántas unidades has consumido?</label>
+        <div style="display:flex; align-items:center; gap:10px; margin-top:6px;">
+          <button type="button" class="btn-step" onclick="NeveraApp.stepConsumeAmount(-1)">−</button>
+          <input type="number" id="consume-amount-input" class="form-input" style="text-align:center; font-size:1.4rem; font-weight:800; width:85px; padding:6px;" min="1" value="1" oninput="NeveraApp.onConsumeAmountChange()">
+          <button type="button" class="btn-step" onclick="NeveraApp.stepConsumeAmount(1)">+</button>
+          <button type="button" class="btn-secondary" style="flex:1; padding:8px 12px; font-size:0.88rem; min-height:44px;" onclick="NeveraApp.setConsumeAmountAll()">Todo lo que queda</button>
+        </div>
+        <!-- Accesos rápidos táctiles -->
+        <div style="display:flex; gap:6px; margin-top:8px;" id="consume-quick-buttons">
+          <button type="button" class="btn-chip" onclick="NeveraApp.setConsumeAmount(1)">1 ud</button>
+          <button type="button" class="btn-chip" onclick="NeveraApp.setConsumeAmount(2)">2 uds</button>
+          <button type="button" class="btn-chip" onclick="NeveraApp.setConsumeAmount(4)">4 uds</button>
+          <button type="button" class="btn-chip" onclick="NeveraApp.setConsumeAmount(6)">6 uds</button>
+        </div>
+      </div>
+
+      <!-- Fecha de consumo (Hoy, Ayer o específica) -->
+      <div class="form-group" style="margin-bottom:16px;">
+        <label style="font-size:0.85rem; color:var(--text-muted);">¿Cuándo se consumió?</label>
+        <div style="display:flex; gap:8px; margin-top:4px; align-items:center;">
+          <button type="button" id="btn-consume-when-today" class="btn-chip active" onclick="NeveraApp.setConsumeDate('today')">Hoy</button>
+          <button type="button" id="btn-consume-when-yesterday" class="btn-chip" onclick="NeveraApp.setConsumeDate('yesterday')">Ayer</button>
+          <input type="date" id="consume-date-custom" class="form-input" style="flex:1; padding:6px 10px; font-size:0.85rem; min-height:38px;" onchange="NeveraApp.setConsumeDate('custom')">
+        </div>
+      </div>
+
+      <div class="modal-buttons" style="display:flex; gap:10px; margin-top:14px;">
+        <button class="btn-secondary" style="flex:1;" onclick="NeveraApp.closeModal('modal-consume-inventory')">Cancelar</button>
+        <button class="btn-primary" id="btn-confirm-consume" style="flex:2; font-weight:700;" onclick="NeveraApp.submitConsumeItem()">✓ Registrar Consumo</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: AÑADIR HÁBITO -->
   <div class="modal-overlay" id="modal-add-habit" style="display: none;">
     <div class="modal-content">

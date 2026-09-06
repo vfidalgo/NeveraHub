@@ -832,6 +832,94 @@ main.kiosk-content {
   background: rgba(16, 185, 129, 0.3);
 }
 
+/* Estilos para control individualizado de stock y consumos */
+.item-stock-bar {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  margin: 6px 0 8px 0;
+  overflow: hidden;
+}
+
+.item-stock-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.item-consumed-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.76rem;
+  background: rgba(245, 158, 11, 0.12);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 2px 7px;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.btn-step {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.btn-step:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.btn-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-chip:active {
+  transform: scale(0.95);
+}
+
+.btn-chip.active {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: var(--primary);
+  color: #93c5fd;
+  box-shadow: 0 0 10px var(--primary-glow);
+}
+
+.consume-history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.84rem;
+}
+
+.consume-history-row:last-child {
+  border-bottom: none;
+}
+
 /* ==========================================================================
    5. RECETAS ANTI-DESPERDICIO
    ========================================================================== */

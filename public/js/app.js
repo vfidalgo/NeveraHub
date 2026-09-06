@@ -471,18 +471,82 @@ const NeveraApp = {
             <div class="item-name">${item.name}</div>
             <div class="item-badge ${badgeClass}">${badgeText}</div>
           </div>
+      const totalUnits = typeof item.totalUnits === 'number' ? item.totalUnits : (this.parseUnits(item.quantity).totalUnits || 1);
+      const remainingUnits = typeof item.remainingUnits === 'number' ? item.remainingUnits : (this.parseUnits(item.quantity).remainingUnits || 1);
+      const unitName = item.unitName || this.parseUnits(item.quantity).unitName || 'uds';
+      const history = item.consumedHistory || [];
+
+      let stockMetaHtml = '';
+      if (totalUnits > 1) {
+        const pct = Math.max(0, Math.min(100, Math.round((remainingUnits / totalUnits) * 100)));
+        let lastConsumedHtml = '';
+        if (history.length > 0) {
+          const last = history[history.length - 1];
+          const todayStr = new Date().toISOString().split('T')[0];
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toISOString().split('T')[0];
+          let dLabel = last.date === todayStr ? 'Hoy' : (last.date === yesterdayStr ? 'Ayer' : last.date);
+          lastConsumedHtml = `<div class="item-consumed-tag">🕒 Último: ${dLabel} (-${last.amount} ${unitName})</div>`;
+        }
+        stockMetaHtml = `
+          <div>📦 Disponibles: <strong>${remainingUnits} / ${totalUnits} ${unitName}</strong></div>
+          <div class="item-stock-bar">
+            <div class="item-stock-fill" style="width:${pct}%;"></div>
+          </div>
+          ${lastConsumedHtml}
+        `;
+      } else {
+        stockMetaHtml = `<div>📦 Cantidad: <strong>${item.quantity}</strong></div>`;
+      }
+
+      return `
+        <div class="item-card status-${item.status}">
+          <div class="item-top">
+            <div class="item-name">${item.name}</div>
+            <div class="item-badge ${badgeClass}">${badgeText}</div>
+          </div>
           <div class="item-meta">
-            <div>📦 Cantidad: <strong>${item.quantity}</strong></div>
+            ${stockMetaHtml}
             <div>📍 Ubicación: ${locIcon}</div>
             <div>🗓️ Caducidad: ${item.expiryDate}</div>
           </div>
           <div class="item-actions">
-            <button class="btn-consume" onclick="NeveraApp.consumeItem('${item.id}')">✓ Consumido</button>
+            <button class="btn-consume" onclick="NeveraApp.handleConsumeClick('${item.id}')">✓ Consumido</button>
             <button class="btn-secondary" style="flex:none; padding:8px 12px;" onclick="NeveraApp.deleteItem('${item.id}')">🗑️</button>
           </div>
         </div>
       `;
     }).join('');
+  },
+
+  parseUnits(quantityStr) {
+    if (typeof quantityStr === 'number') {
+      return { totalUnits: quantityStr, remainingUnits: quantityStr, unitName: 'uds' };
+    }
+    if (!quantityStr || typeof quantityStr !== 'string') {
+      return { totalUnits: 1, remainingUnits: 1, unitName: 'ud' };
+    }
+    const str = quantityStr.trim();
+    const matchDocena = str.match(/(\d+)?\s*docenas?/i);
+    if (matchDocena) {
+      const dCount = matchDocena[1] ? parseInt(matchDocena[1], 10) : 1;
+      return { totalUnits: dCount * 12, remainingUnits: dCount * 12, unitName: 'huevos' };
+    }
+    if (/media\s+docena/i.test(str)) {
+      return { totalUnits: 6, remainingUnits: 6, unitName: 'huevos' };
+    }
+    const matchNum = str.match(/^(\d+)\s*(.*)$/);
+    if (matchNum) {
+      const num = parseInt(matchNum[1], 10);
+      const unitPart = (matchNum[2] || '').trim();
+      const isWeightVolumeSingle = /^(kg|kilos?|g|gramos?|l|litros?|ml|bote|paquete|tarro|bolsa)\b/i.test(unitPart);
+      if (isWeightVolumeSingle && num === 1) {
+        return { totalUnits: 1, remainingUnits: 1, unitName: unitPart || 'ud' };
+      }
+      return { totalUnits: num, remainingUnits: num, unitName: unitPart || 'uds' };
+    }
+    return { totalUnits: 1, remainingUnits: 1, unitName: 'ud' };
   },
 
   filterInventoryLocation(loc) {
@@ -491,6 +555,226 @@ const NeveraApp = {
       b.classList.toggle('active', b.getAttribute('data-loc') === loc);
     });
     this.renderInventory();
+  },
+
+  handleConsumeClick(id) {
+    const item = this.cachedInventory.find(i => i.id === id);
+    if (!item) return;
+
+    const totalUnits = typeof item.totalUnits === 'number' ? item.totalUnits : (this.parseUnits(item.quantity).totalUnits || 1);
+    const remainingUnits = typeof item.remainingUnits === 'number' ? item.remainingUnits : (this.parseUnits(item.quantity).remainingUnits || 1);
+    const hasHistory = Array.isArray(item.consumedHistory) && item.consumedHistory.length > 0;
+
+    // Si tiene cantidad mayor a 1 o ya tiene historial de consumos parciales previos:
+    if (remainingUnits > 1 || totalUnits > 1 || hasHistory) {
+      this.openConsumeModal(item);
+    } else {
+      // Consumo unitario / global directo (ej. bote de azúcar, 1 kg de arroz)
+      this.consumeItem(id);
+    }
+  },
+
+  currentConsumingItem: null,
+  consumeSelectedDate: 'today',
+
+  openConsumeModal(item) {
+    this.currentConsumingItem = item;
+    this.consumeSelectedDate = 'today';
+
+    const modal = document.getElementById('modal-consume-inventory');
+    if (!modal) return;
+
+    const totalUnits = typeof item.totalUnits === 'number' ? item.totalUnits : (this.parseUnits(item.quantity).totalUnits || 1);
+    const remainingUnits = typeof item.remainingUnits === 'number' ? item.remainingUnits : (this.parseUnits(item.quantity).remainingUnits || 1);
+    const unitName = item.unitName || this.parseUnits(item.quantity).unitName || 'uds';
+
+    // Rellenar información visual
+    const nameEl = document.getElementById('consume-product-name');
+    const metaEl = document.getElementById('consume-product-meta');
+    const stockEl = document.getElementById('consume-product-stock');
+    if (nameEl) nameEl.textContent = item.name;
+
+    const locIcon = item.location === 'fridge' ? '🧊 Nevera' : (item.location === 'pantry' ? '🥫 Despensa' : '❄️ Congelador');
+    if (metaEl) metaEl.textContent = `${locIcon} • Caducidad: ${item.expiryDate || 'N/A'}`;
+    if (stockEl) stockEl.textContent = `${remainingUnits} / ${totalUnits} ${unitName}`;
+
+    // Barra de progreso
+    const pct = Math.max(0, Math.min(100, Math.round((remainingUnits / totalUnits) * 100)));
+    const bar = document.getElementById('consume-progress-bar');
+    if (bar) {
+      bar.style.width = `${pct}%`;
+      bar.style.background = pct <= 25 ? 'var(--danger)' : (pct <= 50 ? 'var(--warning)' : 'var(--success)');
+    }
+
+    // Historial previo
+    const historyList = document.getElementById('consume-history-list');
+    const historyTotal = document.getElementById('consume-history-total');
+    const history = item.consumedHistory || [];
+
+    let totalConsumed = 0;
+    history.forEach(h => { totalConsumed += (h.amount || 0); });
+
+    if (historyTotal) {
+      historyTotal.textContent = `Consumidos: ${totalConsumed} ${unitName}`;
+    }
+
+    if (historyList) {
+      if (history.length === 0) {
+        historyList.innerHTML = `<div style="color:var(--text-muted); text-align:center; padding:8px 0;">No hay consumos previos registrados aún.</div>`;
+      } else {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        historyList.innerHTML = history.slice().reverse().map(h => {
+          let dateLabel = h.date;
+          if (h.date === todayStr) dateLabel = 'Hoy';
+          else if (h.date === yesterdayStr) dateLabel = 'Ayer';
+          else {
+            const parts = (h.date || '').split('-');
+            if (parts.length === 3) dateLabel = `${parts[2]}/${parts[1]}/${parts[0]}`;
+          }
+
+          return `
+            <div class="consume-history-row">
+              <span style="color:#ffffff;">🗓️ <strong>${dateLabel}</strong> ${h.note ? `<em style="color:var(--text-muted); font-size:0.78rem;">(${h.note})</em>` : ''}</span>
+              <span style="color:#fcd34d; font-weight:700;">-${h.amount} ${unitName}</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // Input de unidades
+    const input = document.getElementById('consume-amount-input');
+    if (input) {
+      input.value = 1;
+      input.max = remainingUnits;
+      input.min = 1;
+    }
+
+    // Chips dinámicos según stock disponible
+    const quickBox = document.getElementById('consume-quick-buttons');
+    if (quickBox) {
+      const candidates = [1, 2, 4, 6].filter(n => n <= remainingUnits);
+      if (!candidates.includes(1)) candidates.unshift(1);
+      quickBox.innerHTML = candidates.map(n => `
+        <button type="button" class="btn-chip" onclick="NeveraApp.setConsumeAmount(${n})">${n} ${unitName}</button>
+      `).join('');
+    }
+
+    // Selector de fecha por defecto 'today'
+    this.setConsumeDate('today');
+    this.updateConfirmButtonText();
+    modal.style.display = 'flex';
+  },
+
+  setConsumeAmount(amount) {
+    const input = document.getElementById('consume-amount-input');
+    if (!input || !this.currentConsumingItem) return;
+    const max = this.currentConsumingItem.remainingUnits || 1;
+    input.value = Math.max(1, Math.min(amount, max));
+    this.updateConfirmButtonText();
+  },
+
+  stepConsumeAmount(step) {
+    const input = document.getElementById('consume-amount-input');
+    if (!input || !this.currentConsumingItem) return;
+    const current = parseInt(input.value || '1', 10);
+    const max = this.currentConsumingItem.remainingUnits || 1;
+    const newVal = Math.max(1, Math.min(current + step, max));
+    input.value = newVal;
+    this.updateConfirmButtonText();
+  },
+
+  setConsumeAmountAll() {
+    if (!this.currentConsumingItem) return;
+    const max = this.currentConsumingItem.remainingUnits || 1;
+    const input = document.getElementById('consume-amount-input');
+    if (input) input.value = max;
+    this.updateConfirmButtonText();
+  },
+
+  onConsumeAmountChange() {
+    const input = document.getElementById('consume-amount-input');
+    if (!input || !this.currentConsumingItem) return;
+    const max = this.currentConsumingItem.remainingUnits || 1;
+    let val = parseInt(input.value || '1', 10);
+    if (isNaN(val) || val < 1) val = 1;
+    if (val > max) val = max;
+    input.value = val;
+    this.updateConfirmButtonText();
+  },
+
+  setConsumeDate(type) {
+    this.consumeSelectedDate = type;
+    const btnToday = document.getElementById('btn-consume-when-today');
+    const btnYesterday = document.getElementById('btn-consume-when-yesterday');
+    const inputCustom = document.getElementById('consume-date-custom');
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const yest = new Date();
+    yest.setDate(yest.getDate() - 1);
+    const yestStr = yest.toISOString().split('T')[0];
+
+    if (btnToday) btnToday.classList.toggle('active', type === 'today');
+    if (btnYesterday) btnYesterday.classList.toggle('active', type === 'yesterday');
+
+    if (type === 'today') {
+      if (inputCustom) inputCustom.value = todayStr;
+    } else if (type === 'yesterday') {
+      if (inputCustom) inputCustom.value = yestStr;
+    }
+  },
+
+  getEffectiveConsumeDate() {
+    const inputCustom = document.getElementById('consume-date-custom');
+    if (this.consumeSelectedDate === 'yesterday') {
+      const yest = new Date();
+      yest.setDate(yest.getDate() - 1);
+      return yest.toISOString().split('T')[0];
+    }
+    if (this.consumeSelectedDate === 'custom' && inputCustom && inputCustom.value) {
+      return inputCustom.value;
+    }
+    return new Date().toISOString().split('T')[0];
+  },
+
+  updateConfirmButtonText() {
+    const input = document.getElementById('consume-amount-input');
+    const btn = document.getElementById('btn-confirm-consume');
+    if (!input || !btn || !this.currentConsumingItem) return;
+
+    const amount = parseInt(input.value || '1', 10);
+    const remaining = this.currentConsumingItem.remainingUnits || 1;
+    const unitName = this.currentConsumingItem.unitName || 'uds';
+
+    if (amount >= remaining) {
+      btn.textContent = `✓ Terminar producto (-${amount} ${unitName})`;
+    } else {
+      const willRemain = remaining - amount;
+      btn.textContent = `✓ Consumir ${amount} ${unitName} (quedarán ${willRemain})`;
+    }
+  },
+
+  async submitConsumeItem() {
+    if (!this.currentConsumingItem) return;
+    const input = document.getElementById('consume-amount-input');
+    const amount = parseInt(input ? input.value : '1', 10) || 1;
+    const dateStr = this.getEffectiveConsumeDate();
+
+    try {
+      await NeveraSync.consumeInventoryItem(this.currentConsumingItem.id, {
+        amount,
+        date: dateStr
+      });
+      this.closeModal('modal-consume-inventory');
+      await this.refreshAllData();
+    } catch (err) {
+      console.error('Error registrando consumo', err);
+      alert('Error registrando consumo del producto');
+    }
   },
 
   async consumeItem(id) {
@@ -804,7 +1088,19 @@ const NeveraApp = {
       return;
     }
 
-    await NeveraSync.saveInventoryItem({ name, location, category, quantity, expiryDate });
+    const unitInfo = this.parseUnits(quantity);
+
+    await NeveraSync.saveInventoryItem({
+      name,
+      location,
+      category,
+      quantity,
+      totalUnits: unitInfo.totalUnits,
+      remainingUnits: unitInfo.remainingUnits,
+      unitName: unitInfo.unitName,
+      consumedHistory: [],
+      expiryDate
+    });
     this.closeModal('modal-add-inventory');
     document.getElementById('inv-name').value = '';
     await this.refreshAllData();
