@@ -38,7 +38,7 @@ function getLocalIpAddresses() {
   return addresses;
 }
 
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log('====================================================');
     console.log(`🧊 NeveraHub Servidor Familiar ACTIVO en puerto ${PORT}`);
