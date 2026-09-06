@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>NeveraHub - Panel Familiar Inteligente</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="kiosk-app">
+    
+    <!-- CABECERA SUPERIOR (SIEMPRE VISIBLE) -->
+    <header class="kiosk-header">
+      <div class="header-time-block">
+        <div class="header-clock" id="header-clock">12:00:00</div>
+        <div class="header-date-wrapper">
+          <div class="header-date" id="header-date">Cargando fecha...</div>
+          <div class="header-hub-tag">NeveraHub • Family Display</div>
+        </div>
+      </div>
+
+      <div class="header-stats">
+        <button class="btn-vision-header" id="btn-face-id" title="Identificación Facial con Cámara">
+          📷 Face ID
+        </button>
+        <button class="btn-voice-header" id="btn-voice-assistant" title="Hablar con NeveraHub (Tecla M)">
+          <span class="voice-dot"></span>
+          🎙️ Hablar
+        </button>
+        <div class="header-members-bar" id="header-members-bar" title="Seleccionar Perfil">
+          <button class="member-chip-btn active-user" data-id="all" onclick="NeveraVision.selectMemberManually('all')" title="Toda la familia">🏠</button>
+          <button class="member-chip-btn" data-id="m1" onclick="NeveraVision.selectMemberManually('m1')" title="Papá">👨</button>
+          <button class="member-chip-btn" data-id="m2" onclick="NeveraVision.selectMemberManually('m2')" title="Mamá">👩</button>
+          <button class="member-chip-btn" data-id="m3" onclick="NeveraVision.selectMemberManually('m3')" title="Guille (5 años)">👦</button>
+          <button class="member-chip-btn" data-id="m4" onclick="NeveraVision.selectMemberManually('m4')" title="Samuel (2 años)">👶</button>
+        </div>
+        <div class="badge-alert" id="badge-alert" style="display: none;">
+          ⚠️ 0 alimentos por caducar
+        </div>
+        <div class="badge-habits" id="badge-habits">
+          ✅ Hábitos hoy: 0%
+        </div>
+        <button class="btn-icon-header" id="btn-night-mode" title="Modo Noche (atenuar brillo)">🌙 Modo Noche</button>
+        <button class="btn-icon-header" id="btn-fullscreen" title="Pantalla Completa Kiosko">🖥️ Kiosko</button>
+      </div>
+    </header>
+
+    <!-- BARRA DE NAVEGACIÓN TÁCTIL (ZERO-SCROLL DISTRIBUCIÓN UNIFORME) -->
+    <nav class="kiosk-nav">
+      <button class="nav-tab active" data-target="dashboard">
+        <span class="tab-icon">🏠</span>
+        <span class="tab-text">Hoy en Casa</span>
+      </button>
+      <button class="nav-tab" data-target="calendar">
+        <span class="tab-icon">📅</span>
+        <span class="tab-text">Calendario</span>
+      </button>
+      <button class="nav-tab" data-target="habits">
+        <span class="tab-icon">⭐</span>
+        <span class="tab-text">Rutinas</span>
+      </button>
+      <button class="nav-tab" data-target="inventory">
+        <span class="tab-icon">🥦</span>
+        <span class="tab-text">Nevera</span>
+      </button>
+      <button class="nav-tab" data-target="recipes">
+        <span class="tab-icon">🍳</span>
+        <span class="tab-text">¿Qué cocino?</span>
+      </button>
+      <button class="nav-tab" data-target="menus">
+        <span class="tab-icon">📋</span>
+        <span class="tab-text">Menú Semanal</span>
+      </button>
+      <button class="nav-tab" data-target="settings">
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-text">Familia</span>
+      </button>
+    </nav>
+
+    <!-- CONTENEDOR DE PANELES (ALTURA EXACTA KIOSKO) -->
+    <main class="kiosk-content">
+      
+      <!-- 1. PANEL DASHBOARD -->
+      <section class="tab-pane active" id="tab-dashboard">
+        <div id="dashboard-content"></div>
+      </section>
+
+      <!-- 2. PANEL CALENDARIO -->
+      <section class="tab-pane" id="tab-calendar">
+        <div class="calendar-controls">
+          <div class="member-filters" id="calendar-member-filters"></div>
+          <button class="btn-primary" onclick="NeveraApp.openAddEventModal()">+ Nuevo Evento Familiar</button>
+        </div>
+        <div class="calendar-week-grid" id="calendar-week-grid"></div>
+      </section>
+
+      <!-- 3. PANEL HÁBITOS Y RUTINAS -->
+      <section class="tab-pane" id="tab-habits">
+        <div class="section-heading">
+          <h2>Checklist y Rutinas de la Familia</h2>
+          <p>Toca cada tarea para marcarla. Se resetea limpio cada medianoche.</p>
+        </div>
+        <div class="habits-container" id="habits-container"></div>
+      </section>
+
+      <!-- 4. PANEL INVENTARIO -->
+      <section class="tab-pane" id="tab-inventory">
+        <div class="inventory-header-actions">
+          <div class="inventory-filters">
+            <button class="filter-chip active" data-loc="all" onclick="NeveraApp.filterInventoryLocation('all')">Todos</button>
+            <button class="filter-chip" data-loc="fridge" onclick="NeveraApp.filterInventoryLocation('fridge')">🧊 Nevera</button>
+            <button class="filter-chip" data-loc="pantry" onclick="NeveraApp.filterInventoryLocation('pantry')">🥫 Despensa</button>
+            <button class="filter-chip" data-loc="freezer" onclick="NeveraApp.filterInventoryLocation('freezer')">❄️ Congelador</button>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn-secondary" onclick="NeveraApp.switchTab('recipes')">🍳 Recetas Recomendadas</button>
+            <button class="btn-primary" onclick="NeveraApp.openAddInventoryModal()">+ Añadir Alimento</button>
+          </div>
+        </div>
+        <div class="inventory-grid" id="inventory-grid"></div>
+      </section>
+
+      <!-- 5. PANEL RECETAS ANTI-DESPERDICIO -->
+      <section class="tab-pane" id="tab-recipes">
+        <div class="section-heading">
+          <h2>Motor Culinario Anti-Desperdicio</h2>
+          <p>Prioriza los alimentos que están a punto de caducar en tu nevera y despensa.</p>
+        </div>
+        <div id="recipes-container"></div>
+      </section>
+
+      <!-- 6. PANEL MENÚ SEMANAL -->
+      <section class="tab-pane" id="tab-menus">
+        <div class="section-heading">
+          <h2>Planificador Semanal de Comidas</h2>
+          <p>Separa los menús del colegio de los niños, las comidas de los padres y las cenas conjuntas.</p>
+        </div>
+        <div class="menu-table-container">
+          <table class="menu-table">
+            <thead>
+              <tr>
+                <th>Día</th>
+                <th>🏫 Menú Escolar (Niños)</th>
+                <th>💼 Comida Adultos (Padres)</th>
+                <th>🌙 Cena Familiar Compartida</th>
+              </tr>
+            </thead>
+            <tbody id="menu-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 7. PANEL FAMILIA & AJUSTES -->
+      <section class="tab-pane" id="tab-settings">
+        <div id="settings-content"></div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- MODAL: AÑADIR EVENTO -->
+  <div class="modal-overlay" id="modal-add-event" style="display: none;">
+    <div class="modal-content">
+      <h3 style="margin-bottom:14px; font-size:1.3rem;">📅 Añadir Evento Familiar</h3>
+      <div class="form-group">
+        <label>Título del evento:</label>
+        <input type="text" id="event-title" class="form-input" placeholder="Ej. Cumpleaños, Médico, Partido fútbol...">
+      </div>
+      <div class="form-group">
+        <label>Asignado a:</label>
+        <select id="event-member" class="form-select"></select>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+        <div class="form-group">
+          <label>Fecha:</label>
+          <input type="date" id="event-date" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Hora Inicio:</label>
+          <input type="time" id="event-start" class="form-input" value="17:00">
+        </div>
+        <div class="form-group">
+          <label>Hora Fin:</label>
+          <input type="time" id="event-end" class="form-input" value="18:00">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notas adicionales:</label>
+        <input type="text" id="event-notes" class="form-input" placeholder="Lugar, ropa necesaria, detalles...">
+      </div>
+      <div class="modal-buttons">
+        <button class="btn-secondary" onclick="NeveraApp.closeModal('modal-add-event')">Cancelar</button>
+        <button class="btn-primary" onclick="NeveraApp.submitAddEvent()">Guardar Evento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AÑADIR ALIMENTO -->
+  <div class="modal-overlay" id="modal-add-inventory" style="display: none;">
+    <div class="modal-content">
+      <h3 style="margin-bottom:14px; font-size:1.3rem;">🥦 Añadir Producto a la Nevera / Despensa</h3>
+      <div class="form-group">
+        <label>Nombre del alimento:</label>
+        <input type="text" id="inv-name" class="form-input" placeholder="Ej. Yogures, Tomates, Merluza...">
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div class="form-group">
+          <label>Ubicación:</label>
+          <select id="inv-location" class="form-select">
+            <option value="fridge">🧊 Nevera</option>
+            <option value="pantry">🥫 Despensa</option>
+            <option value="freezer">❄️ Congelador</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Categoría:</label>
+          <select id="inv-category" class="form-select">
+            <option value="vegetables">🥦 Frutas y Verduras</option>
+            <option value="dairy">🧀 Lácteos y Huevos</option>
+            <option value="meat">🍗 Carnes y Pescados</option>
+            <option value="pantry">🌾 Cereales, Legumbres y Pastas</option>
+            <option value="other">📦 Otros</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Cantidad:</label>
+        <input type="text" id="inv-quantity" class="form-input" placeholder="Ej. 4 uds, 500g, 1 brick">
+      </div>
+      <div class="form-group">
+        <label>Fecha de Caducidad / Consumo Preferente:</label>
+        <input type="date" id="inv-expiry" class="form-input">
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button type="button" class="btn-secondary" style="padding:4px 8px; font-size:0.8rem;" onclick="NeveraApp.setQuickExpiry(3)">+3 días</button>
+          <button type="button" class="btn-secondary" style="padding:4px 8px; font-size:0.8rem;" onclick="NeveraApp.setQuickExpiry(5)">+5 días</button>
+          <button type="button" class="btn-secondary" style="padding:4px 8px; font-size:0.8rem;" onclick="NeveraApp.setQuickExpiry(7)">+1 semana</button>
+          <button type="button" class="btn-secondary" style="padding:4px 8px; font-size:0.8rem;" onclick="NeveraApp.setQuickExpiry(14)">+2 semanas</button>
+        </div>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn-secondary" onclick="NeveraApp.closeModal('modal-add-inventory')">Cancelar</button>
+        <button class="btn-primary" onclick="NeveraApp.submitAddInventory()">Guardar Alimento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AÑADIR HÁBITO -->
+  <div class="modal-overlay" id="modal-add-habit" style="display: none;">
+    <div class="modal-content">
+      <h3 style="margin-bottom:14px; font-size:1.3rem;">⭐ Añadir Hábito / Rutina</h3>
+      <div class="form-group">
+        <label>Para quién:</label>
+        <select id="habit-member" class="form-select"></select>
+      </div>
+      <div class="form-group">
+        <label>Nombre de la tarea:</label>
+        <input type="text" id="habit-title" class="form-input" placeholder="Ej. Lavarse los dientes, Hacer ejercicio...">
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div class="form-group">
+          <label>Momento del día:</label>
+          <select id="habit-period" class="form-select">
+            <option value="morning">☀️ Mañana</option>
+            <option value="afternoon">⛅ Tarde</option>
+            <option value="night">🌙 Noche</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Icono:</label>
+          <select id="habit-icon" class="form-select">
+            <option value="🪥">🪥 Dientes</option>
+            <option value="🎒">🎒 Mochila / Cole</option>
+            <option value="📚">📚 Deberes / Lectura</option>
+            <option value="🧸">🧸 Recoger juguetes</option>
+            <option value="🧘‍♀️">🧘‍♀️ Ejercicio / Deporte</option>
+            <option value="🐕">🐕 Pasear perro</option>
+            <option value="💧">💧 Beber agua</option>
+            <option value="⭐">⭐ General</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn-secondary" onclick="NeveraApp.closeModal('modal-add-habit')">Cancelar</button>
+        <button class="btn-primary" onclick="NeveraApp.submitAddHabit()">Crear Hábito</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AÑADIR MIEMBRO -->
+  <div class="modal-overlay" id="modal-add-member" style="display: none;">
+    <div class="modal-content">
+      <h3 style="margin-bottom:14px; font-size:1.3rem;">👨‍👩‍👧‍👦 Añadir Miembro Familiar</h3>
+      <div class="form-group">
+        <label>Nombre:</label>
+        <input type="text" id="member-name" class="form-input" placeholder="Ej. Mateo, Abuela, etc.">
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+        <div class="form-group">
+          <label>Rol:</label>
+          <select id="member-role" class="form-select">
+            <option value="child">Hijo / Niña</option>
+            <option value="parent">Padre / Madre</option>
+            <option value="other">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Avatar:</label>
+          <select id="member-avatar" class="form-select">
+            <option value="👦">👦 Niño</option>
+            <option value="👧">👧 Niña</option>
+            <option value="👨">👨 Papá</option>
+            <option value="👩">👩 Mamá</option>
+            <option value="👴">👴 Abuelo</option>
+            <option value="👵">👵 Abuela</option>
+            <option value="🐶">🐶 Mascota</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Color:</label>
+          <input type="color" id="member-color" class="form-input" value="#3B82F6" style="padding:2px; height:44px;">
+        </div>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn-secondary" onclick="NeveraApp.closeModal('modal-add-member')">Cancelar</button>
+        <button class="btn-primary" onclick="NeveraApp.submitAddMember()">Guardar Miembro</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL / HUD ASISTENTE VIRTUAL POR VOZ (NeveraBot) -->
+  <div class="voice-hud-modal" id="voice-hud-modal">
+    <div class="voice-hud-backdrop" id="btn-close-voice-hud"></div>
+    <div class="voice-hud-container" id="voice-hud-container" data-status="idle">
+      <div class="voice-hud-header">
+        <div class="voice-hud-title">
+          <span class="voice-orb">🎙️</span>
+          <span>NeveraBot • Asistente de Cocina</span>
+        </div>
+        <button class="voice-hud-close" onclick="NeveraVoice.closeHud()">✕</button>
+      </div>
+
+      <div class="voice-wave-container">
+        <div class="voice-wave-bars" id="voice-wave-bars">
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+        </div>
+      </div>
+
+      <div class="voice-hud-status" id="voice-hud-status">Te escucho... habla con naturalidad</div>
+      <div class="voice-hud-transcript" id="voice-hud-transcript"></div>
+      <div class="voice-hud-response" id="voice-hud-response" style="display: none;"></div>
+
+      <div class="voice-hud-suggestions">
+        <div class="suggestion-chip" onclick="NeveraVoice.sendManualQuery('¿Qué hay hoy de comer?')">🍲 ¿Qué hay de comer?</div>
+        <div class="suggestion-chip" onclick="NeveraVoice.sendManualQuery('¿Qué alimentos caducan pronto?')">⚠️ ¿Qué caduca pronto?</div>
+        <div class="suggestion-chip" onclick="NeveraVoice.sendManualQuery('¿Qué receta me recomiendas?')">🍳 Recomiéndame receta</div>
+        <div class="suggestion-chip" onclick="NeveraVoice.sendManualQuery('Guille se ha lavado los dientes')">🪥 Dientes de Guille</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RETÍCULA VISUAL Y VISOR DE CÁMARA EN DIRECTO PARA ESCANEO FACIAL -->
+  <div class="face-scan-hud" id="face-scan-hud">
+    <div class="scan-preview-wrapper">
+      <video id="face-scan-video" autoplay playsinline muted></video>
+      <img id="face-scan-snapshot-img" alt="Vista captura" style="display:none;" />
+      <div class="scan-reticle">
+        <div class="corner top-left"></div>
+        <div class="corner top-right"></div>
+        <div class="corner bottom-left"></div>
+        <div class="corner bottom-right"></div>
+        <div class="scan-line"></div>
+      </div>
+    </div>
+    <div class="face-scan-text" id="face-scan-text">Iniciando cámara...</div>
+  </div>
+
+  <script src="js/sync.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/assistant.js"></script>
+  <script src="js/vision.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
+
+

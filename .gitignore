@@ -1,0 +1,22 @@
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
+
+# Android build outputs & cache
+.gradle/
+android/.gradle/
+android/app/build/
+android/build/
+*.iml
+.idea/
+local.properties
+
+# Database temp files & camera security captures
+data/security_captures/*.jpg
+!data/security_captures/.gitkeep
+*.tmp.*
+.env
+

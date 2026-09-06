@@ -1,0 +1,17 @@
+FROM ghcr.io/cirruslabs/android-sdk:33
+
+USER root
+
+# Instalar Gradle 7.6.4
+RUN curl -sL https://services.gradle.org/distributions/gradle-7.6.4-bin.zip -o /tmp/gradle.zip && \
+    unzip -q /tmp/gradle.zip -d /opt && \
+    rm /tmp/gradle.zip
+
+ENV PATH="/opt/gradle-7.6.4/bin:${PATH}"
+
+WORKDIR /app
+
+# Aceptar licencias del SDK de Android
+RUN yes | sdkmanager --licenses || true
+
+CMD ["gradle", "assembleDebug", "--stacktrace"]

@@ -1,0 +1,25 @@
+{
+  "name": "neverahub-family-fridge",
+  "version": "1.0.0",
+  "description": "Smart Fridge Dashboard & Family Hub for deprecated Android 6.0 Tablets",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node --test tests/*.test.js",
+    "sync:android": "node scripts/sync-android-assets.js"
+  },
+  "keywords": [
+    "smart-fridge",
+    "android-kiosk",
+    "family-calendar",
+    "fridge-inventory",
+    "meal-planner"
+  ],
+  "author": "Antigravity Team",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.115.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}

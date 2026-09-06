@@ -1,0 +1,362 @@
+{
+  "members": [
+    {
+      "id": "m1",
+      "name": "Papá",
+      "role": "parent",
+      "color": "#2563EB",
+      "avatar": "👨",
+      "order": 1
+    },
+    {
+      "id": "m2",
+      "name": "Mamá",
+      "role": "parent",
+      "color": "#DB2777",
+      "avatar": "👩",
+      "order": 2
+    },
+    {
+      "id": "m3",
+      "name": "Guille (5 años)",
+      "role": "child",
+      "color": "#059669",
+      "avatar": "👦",
+      "order": 3
+    },
+    {
+      "id": "m4",
+      "name": "Samuel (2 años)",
+      "role": "child",
+      "color": "#D97706",
+      "avatar": "👶",
+      "order": 4
+    },
+    {
+      "name": "Victor",
+      "role": "parent",
+      "color": "#0858d9",
+      "avatar": "👨",
+      "order": 5,
+      "id": "m_1788700210071_618"
+    }
+  ],
+  "events": [
+    {
+      "title": "Dentista",
+      "memberId": "m1",
+      "date": "2026-09-06",
+      "startTime": "17:00",
+      "endTime": "18:00",
+      "notes": "",
+      "id": "e_1788688975501_886"
+    },
+    {
+      "id": "e1",
+      "title": "Fútbol iniciación Guille",
+      "memberId": "m3",
+      "date": "2026-09-07",
+      "startTime": "17:30",
+      "endTime": "18:45",
+      "notes": "Llevar zapatillas de deporte"
+    },
+    {
+      "id": "e2",
+      "title": "Pediatra revisión 2 años Samuel",
+      "memberId": "m4",
+      "date": "2026-09-08",
+      "startTime": "16:30",
+      "endTime": "17:15",
+      "notes": "Centro de Salud"
+    },
+    {
+      "id": "e3",
+      "title": "Dentista Papá",
+      "memberId": "m1",
+      "date": "2026-09-09",
+      "startTime": "19:00",
+      "endTime": "19:45",
+      "notes": "Clínica Dental Dentalia"
+    },
+    {
+      "id": "e4",
+      "title": "Cumpleaños abuela (Cena familiar)",
+      "memberId": "all",
+      "date": "2026-09-11",
+      "startTime": "20:30",
+      "endTime": "23:00",
+      "notes": "Restaurante El Rincón"
+    },
+    {
+      "title": "Depilarte el Chichi",
+      "memberId": "m2",
+      "date": "2026-09-06",
+      "startTime": "17:00",
+      "endTime": "18:00",
+      "notes": "",
+      "id": "e_1788701355397_586"
+    },
+    {
+      "title": "Pediatra para samu",
+      "memberId": "all",
+      "date": "2026-09-07",
+      "startTime": "11:30",
+      "endTime": "",
+      "notes": "Añadido por voz con NeveraBot",
+      "id": "e_1788701382672_321"
+    }
+  ],
+  "habits": [
+    {
+      "id": "h1",
+      "memberId": "m3",
+      "title": "Lavarse los dientes (Mañana)",
+      "period": "morning",
+      "icon": "🪥",
+      "active": true
+    },
+    {
+      "id": "h2",
+      "memberId": "m3",
+      "title": "Recoger mochila y abrigo",
+      "period": "morning",
+      "icon": "🎒",
+      "active": true
+    },
+    {
+      "id": "h3",
+      "memberId": "m3",
+      "title": "Dibujar o mirar cuento 15m",
+      "period": "afternoon",
+      "icon": "🎨",
+      "active": true
+    },
+    {
+      "id": "h4",
+      "memberId": "m3",
+      "title": "Pijama y dientes (Noche)",
+      "period": "night",
+      "icon": "🪥",
+      "active": true
+    },
+    {
+      "id": "h5",
+      "memberId": "m4",
+      "title": "Lavarse los dientes con ayuda",
+      "period": "morning",
+      "icon": "🪥",
+      "active": true
+    },
+    {
+      "id": "h6",
+      "memberId": "m4",
+      "title": "Siesta de la tarde",
+      "period": "afternoon",
+      "icon": "💤",
+      "active": true
+    },
+    {
+      "id": "h7",
+      "memberId": "m4",
+      "title": "Recoger juguetes en la cesta",
+      "period": "afternoon",
+      "icon": "🧸",
+      "active": true
+    },
+    {
+      "id": "h8_samuel",
+      "memberId": "m4",
+      "title": "Ponerse el pijama y cuento",
+      "period": "night",
+      "icon": "📖",
+      "active": true
+    },
+    {
+      "id": "h8",
+      "memberId": "m2",
+      "title": "Hacer ejercicio / Yoga 30m",
+      "period": "morning",
+      "icon": "🧘‍♀️",
+      "active": true
+    },
+    {
+      "id": "h9",
+      "memberId": "m2",
+      "title": "Beber 2L de agua",
+      "period": "afternoon",
+      "icon": "💧",
+      "active": true
+    },
+    {
+      "id": "h10",
+      "memberId": "m1",
+      "title": "Pasear al perro 30m",
+      "period": "morning",
+      "icon": "🐕",
+      "active": true
+    },
+    {
+      "id": "h11",
+      "memberId": "m1",
+      "title": "Revisar tareas de casa",
+      "period": "night",
+      "icon": "🏠",
+      "active": true
+    }
+  ],
+  "habitLogs": {
+    "2026-09-06": {
+      "h2": false,
+      "h1": false
+    }
+  },
+  "inventory": [
+    {
+      "id": "i4",
+      "name": "Huevos de campo",
+      "category": "dairy",
+      "location": "fridge",
+      "quantity": "8 uds",
+      "addedDate": "2026-09-03",
+      "expiryDate": "2026-09-18",
+      "urgent": false
+    },
+    {
+      "id": "i6",
+      "name": "Arroz bomba",
+      "category": "pantry",
+      "location": "pantry",
+      "quantity": "1 kg",
+      "addedDate": "2026-08-10",
+      "expiryDate": "2027-02-01",
+      "urgent": false
+    },
+    {
+      "id": "i7",
+      "name": "Pasta espaguetis",
+      "category": "pantry",
+      "location": "pantry",
+      "quantity": "500g",
+      "addedDate": "2026-08-20",
+      "expiryDate": "2027-04-01",
+      "urgent": false
+    },
+    {
+      "id": "i8",
+      "name": "Leche entera",
+      "category": "dairy",
+      "location": "fridge",
+      "quantity": "2 bricks",
+      "addedDate": "2026-09-05",
+      "expiryDate": "2026-09-20",
+      "urgent": false
+    },
+    {
+      "id": "i10",
+      "name": "Guisantes congelados",
+      "category": "vegetables",
+      "location": "freezer",
+      "quantity": "450g",
+      "addedDate": "2026-08-25",
+      "expiryDate": "2027-03-01",
+      "urgent": false
+    },
+    {
+      "name": "Leche",
+      "category": "dairy",
+      "location": "fridge",
+      "quantity": "1 ud",
+      "addedDate": "2026-09-06",
+      "expiryDate": "2026-09-13",
+      "urgent": false,
+      "id": "i_1788695412113_937"
+    }
+  ],
+  "menus": {
+    "monday": {
+      "name": "Lunes",
+      "kidsLunch": "Lentejas con verduras y compota de manzana",
+      "parentsLunch": "Ensalada de pasta fría con atún y tomate",
+      "dinner": "Pechuga de pollo a la plancha con calabacín salteado"
+    },
+    "tuesday": {
+      "name": "Martes",
+      "kidsLunch": "Macarrones boloñesa y plátano",
+      "parentsLunch": "Lentejas sobrantes del lunes",
+      "dinner": "Tortilla francesa con ensalada de tomate y mozzarella"
+    },
+    "wednesday": {
+      "name": "Miércoles",
+      "kidsLunch": "Merluza al vapor con patatas panadera y pera",
+      "parentsLunch": "Pechuga de pavo con verduras al vapor",
+      "dinner": "Crema de calabacín casera y huevo poché"
+    },
+    "thursday": {
+      "name": "Jueves",
+      "kidsLunch": "Pollo asado al horno con ensalada y yogur",
+      "parentsLunch": "Arroz salteado con verduras y pollo",
+      "dinner": "Sopa de fideos con verduras y taquitos de jamón"
+    },
+    "friday": {
+      "name": "Viernes",
+      "kidsLunch": "Arroz a la cubana con huevo frito y naranja",
+      "parentsLunch": "Menú del día con compañeros de trabajo",
+      "dinner": "Noche de Pizza casera familiar y peli"
+    },
+    "saturday": {
+      "name": "Sábado",
+      "kidsLunch": "Comida familiar: Arroz caldoso o paella",
+      "parentsLunch": "Comida familiar: Arroz caldoso o paella",
+      "dinner": "Hamburguesas caseras completas"
+    },
+    "sunday": {
+      "name": "Domingo",
+      "kidsLunch": "Guiso tradicional en casa de los abuelos",
+      "parentsLunch": "Guiso tradicional en casa de los abuelos",
+      "dinner": "Cena ligera: Sándwiches calientes y fruta"
+    }
+  },
+  "kioskSettings": {
+    "nightModeEnabled": true,
+    "nightStart": "23:00",
+    "nightEnd": "07:00",
+    "currentTheme": "dark",
+    "fridgeName": "Nevera Familiar",
+    "weatherCity": "Madrid",
+    "screenAlwaysOn": true
+  },
+  "securityAlerts": [
+    {
+      "id": "sec_1788701382722_774",
+      "date": "2026-09-06T13:29:42.722Z",
+      "imageFile": "capture_1788701382714_744.jpg",
+      "imageUrl": "/api/security/captures/capture_1788701382714_744.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788701383005_270",
+      "date": "2026-09-06T13:29:43.005Z",
+      "imageFile": "capture_1788701383004_212.jpg",
+      "imageUrl": "/api/security/captures/capture_1788701383004_212.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788701495901_321",
+      "date": "2026-09-06T13:31:35.901Z",
+      "imageFile": "capture_1788701495899_966.jpg",
+      "imageUrl": "/api/security/captures/capture_1788701495899_966.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788701496224_654",
+      "date": "2026-09-06T13:31:36.224Z",
+      "imageFile": "capture_1788701496224_235.jpg",
+      "imageUrl": "/api/security/captures/capture_1788701496224_235.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    }
+  ]
+}
