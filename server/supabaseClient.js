@@ -61,6 +61,10 @@ class SupabaseService {
           category: item.category,
           location: item.location,
           quantity: item.quantity,
+          total_units: item.totalUnits || 1,
+          remaining_units: item.remainingUnits || 1,
+          unit_name: item.unitName || 'uds',
+          consumed_history: item.consumedHistory || [],
           added_date: item.addedDate,
           expiry_date: item.expiryDate,
           urgent: item.urgent || false
@@ -69,6 +73,29 @@ class SupabaseService {
       return data;
     } catch (e) {
       console.warn('Fallo en sincronización con Supabase:', e.message);
+      return null;
+    }
+  }
+
+  async syncMenuToCloud(dayKey, menu) {
+    if (!this.isEnabled || !menu) return null;
+    try {
+      const { data, error } = await this.client
+        .from('family_menus')
+        .upsert({
+          day_key: dayKey,
+          name: menu.name || dayKey,
+          guille_lunch: menu.guilleLunch || '',
+          samuel_lunch: menu.samuelLunch || '',
+          kids_lunch: menu.kidsLunch || '',
+          parents_lunch: menu.parentsLunch || '',
+          dinner: menu.dinner || '',
+          updated_at: new Date().toISOString()
+        });
+      if (error) console.error('Error sincronizando menú a Supabase:', error.message);
+      return data;
+    } catch (e) {
+      console.warn('Fallo en sincronización de menú con Supabase:', e.message);
       return null;
     }
   }

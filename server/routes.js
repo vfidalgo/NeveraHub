@@ -405,6 +405,11 @@ router.put('/menus', (req, res) => {
   const all = db.getAll();
   all.menus = { ...all.menus, ...req.body };
   db.saveData();
+  if (req.body) {
+    for (const [dayKey, menu] of Object.entries(req.body)) {
+      supabaseClient.syncMenuToCloud(dayKey, menu);
+    }
+  }
   res.json(all.menus);
 });
 
@@ -448,6 +453,9 @@ router.post('/assistant/query', async (req, res) => {
           completed: result.actionData.completed
         });
       } else if (result.actionType === 'menu_update') {
+        if (result.actionData && result.actionData.day && result.actionData.menu) {
+          supabaseClient.syncMenuToCloud(result.actionData.day, result.actionData.menu);
+        }
         notificationService.broadcastSSE({
           type: 'menu_updated',
           day: result.actionData.day,

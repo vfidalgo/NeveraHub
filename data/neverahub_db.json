@@ -306,8 +306,8 @@
     "tuesday": {
       "name": "Martes",
       "guilleLunch": "Macarrones boloñesa y plátano",
-      "samuelLunch": "Sopa de estrellitas con pollo desmigado y plátano",
-      "kidsLunch": "Guille: Macarrones boloñesa | Samuel: Sopa estrellitas",
+      "samuelLunch": "Puré de calabacín con lenguado",
+      "kidsLunch": "Guille: Macarrones boloñesa y plátano | Samuel: Puré de calabacín con lenguado",
       "parentsLunch": "Lentejas sobrantes del lunes",
       "dinner": "Tortilla francesa con ensalada de tomate y mozzarella"
     },
@@ -479,6 +479,134 @@
       "date": "2026-09-06T14:28:29.934Z",
       "imageFile": "capture_1788704909933_572.jpg",
       "imageUrl": "/api/security/captures/capture_1788704909933_572.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788705269035_206",
+      "date": "2026-09-06T14:34:29.035Z",
+      "imageFile": "capture_1788705269034_637.jpg",
+      "imageUrl": "/api/security/captures/capture_1788705269034_637.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788705269356_640",
+      "date": "2026-09-06T14:34:29.356Z",
+      "imageFile": "capture_1788705269356_291.jpg",
+      "imageUrl": "/api/security/captures/capture_1788705269356_291.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788706288933_121",
+      "date": "2026-09-06T14:51:28.933Z",
+      "imageFile": "capture_1788706288933_439.jpg",
+      "imageUrl": "/api/security/captures/capture_1788706288933_439.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788706289207_374",
+      "date": "2026-09-06T14:51:29.207Z",
+      "imageFile": "capture_1788706289206_980.jpg",
+      "imageUrl": "/api/security/captures/capture_1788706289206_980.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788706390765_134",
+      "date": "2026-09-06T14:53:10.765Z",
+      "imageFile": "capture_1788706390764_750.jpg",
+      "imageUrl": "/api/security/captures/capture_1788706390764_750.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788706391054_230",
+      "date": "2026-09-06T14:53:11.054Z",
+      "imageFile": "capture_1788706391053_7.jpg",
+      "imageUrl": "/api/security/captures/capture_1788706391053_7.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788708509628_64",
+      "date": "2026-09-06T15:28:29.628Z",
+      "imageFile": "capture_1788708509627_272.jpg",
+      "imageUrl": "/api/security/captures/capture_1788708509627_272.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788708509909_939",
+      "date": "2026-09-06T15:28:29.909Z",
+      "imageFile": "capture_1788708509909_65.jpg",
+      "imageUrl": "/api/security/captures/capture_1788708509909_65.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788708602000_488",
+      "date": "2026-09-06T15:30:02.000Z",
+      "imageFile": "capture_1788708601999_714.jpg",
+      "imageUrl": "/api/security/captures/capture_1788708601999_714.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788708602196_85",
+      "date": "2026-09-06T15:30:02.196Z",
+      "imageFile": "capture_1788708602196_722.jpg",
+      "imageUrl": "/api/security/captures/capture_1788708602196_722.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788708700203_234",
+      "date": "2026-09-06T15:31:40.203Z",
+      "imageFile": "capture_1788708700202_922.jpg",
+      "imageUrl": "/api/security/captures/capture_1788708700202_922.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788708700381_639",
+      "date": "2026-09-06T15:31:40.381Z",
+      "imageFile": "capture_1788708700380_91.jpg",
+      "imageUrl": "/api/security/captures/capture_1788708700380_91.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788708755064_148",
+      "date": "2026-09-06T15:32:35.064Z",
+      "imageFile": "capture_1788708755063_397.jpg",
+      "imageUrl": "/api/security/captures/capture_1788708755063_397.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788708755241_451",
+      "date": "2026-09-06T15:32:35.241Z",
+      "imageFile": "capture_1788708755240_523.jpg",
+      "imageUrl": "/api/security/captures/capture_1788708755240_523.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788708847926_0",
+      "date": "2026-09-06T15:34:07.926Z",
+      "imageFile": "capture_1788708847926_610.jpg",
+      "imageUrl": "/api/security/captures/capture_1788708847926_610.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788708848116_842",
+      "date": "2026-09-06T15:34:08.116Z",
+      "imageFile": "capture_1788708848115_993.jpg",
+      "imageUrl": "/api/security/captures/capture_1788708848115_993.jpg",
       "status": "unresolved",
       "notes": "Persona no identificada detectada interactuando con la nevera"
     }

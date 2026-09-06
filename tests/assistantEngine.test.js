@@ -28,10 +28,11 @@ test('Asistente Virtual: Consulta de Menús (Comida y Cena)', () => {
   assert.ok(resNinos.spokenResponse.toLowerCase().includes('lentejas') || resNinos.spokenResponse.toLowerCase().includes('guille'));
 
   // Consulta menú individual de Guille y Samuel
+  const expectedGuilleMeal = db.getAll().menus.monday.guilleLunch;
   const resGuille = assistantEngine.processQuery('¿Qué come Guille hoy?', db, refDate);
   assert.strictEqual(resGuille.actionType, 'menu');
   assert.ok(resGuille.spokenResponse.includes('Guille'));
-  assert.ok(resGuille.spokenResponse.includes('Lentejas'));
+  assert.ok(resGuille.spokenResponse.includes(expectedGuilleMeal));
 
   const resSamuel = assistantEngine.processQuery('¿Qué come Samuel hoy?', db, refDate);
   assert.strictEqual(resSamuel.actionType, 'menu');
@@ -106,6 +107,10 @@ test('Asistente Virtual: Consulta sin coincidencia (Fallback)', () => {
 test('Asistente Virtual: Consumo parcial de unidades y consulta de stock', () => {
   const refDate = new Date('2026-09-06T12:00:00Z');
   
+  // Limpiar cualquier residuo previo antes de empezar
+  db.getAll().inventory = (db.getAll().inventory || []).filter(i => !i.name.includes('test'));
+  db.saveData();
+
   // 1. Añadir 12 huevos para la prueba con nombre único
   const newItem = db.add('inventory', {
     name: 'Huevos de granja test',
@@ -253,6 +258,9 @@ test('Asistente Virtual: Flujo Conversacional Cancelación por el usuario', () =
 test('Asistente Virtual: Flujo Conversacional para Consumo de Inventario con Unidades Múltiples', () => {
   const refDate = new Date('2026-09-06T12:00:00Z');
   assistantEngine.resetConversation();
+
+  db.getAll().inventory = (db.getAll().inventory || []).filter(i => !i.name.includes('test'));
+  db.saveData();
 
   const newItem = db.add('inventory', {
     name: 'Huevos ecológicos multi-test',
