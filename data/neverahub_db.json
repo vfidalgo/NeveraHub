@@ -298,8 +298,8 @@
     "monday": {
       "name": "Lunes",
       "guilleLunch": "Lentejas con verduras y compota de manzana",
-      "samuelLunch": "Fidegua de verduras, merluza al horno\n",
-      "kidsLunch": "Guille: Lentejas con verduras y compota de manzana | Samuel: Fidegua de verduras, merluza al horno\n",
+      "samuelLunch": "Puré suave de lentejas con calabaza y pera",
+      "kidsLunch": "Guille: Lentejas con verduras y compota de manzana | Samuel: Puré suave de lentejas con calabaza y pera",
       "parentsLunch": "Ensalada de pasta fría con atún y tomate",
       "dinner": "Pechuga de pollo a la plancha con calabacín salteado"
     },
@@ -423,6 +423,62 @@
       "date": "2026-09-06T13:54:32.962Z",
       "imageFile": "capture_1788702872962_416.jpg",
       "imageUrl": "/api/security/captures/capture_1788702872962_416.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788704357364_581",
+      "date": "2026-09-06T14:19:17.364Z",
+      "imageFile": "capture_1788704357363_935.jpg",
+      "imageUrl": "/api/security/captures/capture_1788704357363_935.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788704357714_556",
+      "date": "2026-09-06T14:19:17.714Z",
+      "imageFile": "capture_1788704357713_97.jpg",
+      "imageUrl": "/api/security/captures/capture_1788704357713_97.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788704626509_149",
+      "date": "2026-09-06T14:23:46.509Z",
+      "imageFile": "capture_1788704626509_153.jpg",
+      "imageUrl": "/api/security/captures/capture_1788704626509_153.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788704805879_660",
+      "date": "2026-09-06T14:26:45.879Z",
+      "imageFile": "capture_1788704805878_843.jpg",
+      "imageUrl": "/api/security/captures/capture_1788704805878_843.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788704806191_22",
+      "date": "2026-09-06T14:26:46.191Z",
+      "imageFile": "capture_1788704806190_750.jpg",
+      "imageUrl": "/api/security/captures/capture_1788704806190_750.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788704909673_97",
+      "date": "2026-09-06T14:28:29.673Z",
+      "imageFile": "capture_1788704909672_895.jpg",
+      "imageUrl": "/api/security/captures/capture_1788704909672_895.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788704909934_128",
+      "date": "2026-09-06T14:28:29.934Z",
+      "imageFile": "capture_1788704909933_572.jpg",
+      "imageUrl": "/api/security/captures/capture_1788704909933_572.jpg",
       "status": "unresolved",
       "notes": "Persona no identificada detectada interactuando con la nevera"
     }

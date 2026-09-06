@@ -1292,6 +1292,52 @@ main.kiosk-content {
   100% { transform: scale(0.9); opacity: 0.7; }
 }
 
+/* Badge de Sesión Activa de Voz de 2 Minutos */
+.badge-voice-session {
+  background: rgba(16, 185, 129, 0.16);
+  border: 1px solid #10b981;
+  color: #34d399;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+  animation: sessionPillGlow 2s infinite ease-in-out;
+}
+
+@keyframes sessionPillGlow {
+  0% { box-shadow: 0 0 8px rgba(16, 185, 129, 0.3); }
+  50% { box-shadow: 0 0 16px rgba(16, 185, 129, 0.6); }
+  100% { box-shadow: 0 0 8px rgba(16, 185, 129, 0.3); }
+}
+
+.voice-session-pulse {
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #10b981;
+  animation: voicePulse 1.2s infinite;
+}
+
+.voice-hud-session-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid #10b981;
+  color: #34d399;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
 /* Modal Overlay HUD del Asistente */
 .voice-hud-modal {
   position: fixed;

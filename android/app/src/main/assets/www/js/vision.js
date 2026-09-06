@@ -41,6 +41,12 @@
     triggerIdentification(source = 'manual') {
       if (this.isScanning) return;
       console.log(`📷 Disparando identificación facial (${source})...`);
+
+      // La interacción FaceID activa la escucha de voz por 2 minutos para recibir órdenes
+      if (window.NeveraVoice && typeof window.NeveraVoice.notifyInteraction === 'function') {
+        window.NeveraVoice.notifyInteraction(`faceid_${source}`);
+      }
+
       this.currentAttempt = 1;
       this.lastScanTime = Date.now();
       this.startScanAttempt(1);
@@ -172,6 +178,11 @@
       this.hideScanHud();
 
       console.log(`✅ Miembro identificado: ${data.memberName} (${data.role})`);
+
+      // Mantener activo el sistema de audio por 2 minutos tras identificación para recibir órdenes
+      if (window.NeveraVoice && typeof window.NeveraVoice.notifyInteraction === 'function') {
+        window.NeveraVoice.notifyInteraction('faceid_identified');
+      }
 
       // Mostrar toast de bienvenida personalizada
       this.showIdentificationBanner(data);
@@ -369,6 +380,9 @@
 
     // Selección manual táctil de perfil
     selectMemberManually(memberId) {
+      if (window.NeveraVoice && typeof window.NeveraVoice.notifyInteraction === 'function') {
+        window.NeveraVoice.notifyInteraction('manual_member_select');
+      }
       if (memberId === 'all') {
         this.activeMemberId = null;
         this.updateMemberSelectorUI('all');

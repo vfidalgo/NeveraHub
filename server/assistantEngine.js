@@ -57,7 +57,23 @@ class AssistantEngine {
       return this.handleGeneralSummary(clean, db, refDate);
     }
 
-    // 2. Consulta de Menús
+    // 2. Actualización de Menús por Voz (Guille, Samuel, Niños, Cenas, Papás)
+    const isCalendarEvent = /(evento|cita|cumpleaños|partido|m[eé]dico|pediatra|reuni[oó]n|dentista)/i.test(clean);
+    const isUpdateVerb = /(apunta|apuntar|añade|anade|añadir|pon\b|poner|agrega|agregar|guarda|guardar|cambia|cambiar|actualiza|actualizar|registra|registrar|escribe|escribir|modifica|modificar)/i.test(clean);
+    const mentionsMenuOrMeal = /(men[uú]|cena\b|cenar\b|almuerzo\b|comida\b)/i.test(clean);
+    const mentionsDay = /(lunes|martes|mi[eé]rcoles|miercoles|jueves|viernes|s[aá]bado|sabado|domingo|hoy|mañana|manana)/i.test(clean);
+    const mentionsChildOrMember = /(guillermo|guille|samuel|samu|niñ[oa]s?|hijos?|infantil|colegio|guarder[ií]a|padres|pap[aá]s?)/i.test(clean);
+
+    if (!isCalendarEvent && isUpdateVerb) {
+      if (mentionsMenuOrMeal && (mentionsDay || mentionsChildOrMember || clean.includes('para') || clean.includes('de'))) {
+        return this.handleMenuUpdate(clean, db, refDate);
+      }
+      if (mentionsChildOrMember && mentionsDay && !clean.includes('nevera') && !clean.includes('despensa') && !clean.includes('congelador')) {
+        return this.handleMenuUpdate(clean, db, refDate);
+      }
+    }
+
+    // 3. Consulta de Menús
     if (clean.includes('menú') || clean.includes('menu') || clean.includes('comer') || clean.includes('comen') || clean.includes('come') || clean.includes('cenar') || clean.includes('cenan') || clean.includes('comida') || clean.includes('cena') || clean.includes('almuerzo')) {
       if (clean.includes('receta') || clean.includes('recomiendas') || clean.includes('puedo cocinar')) {
         return this.handleRecipeRecommendation(db, refDate);
@@ -233,6 +249,140 @@ class AssistantEngine {
       card: {
         title: 'Menú de ' + dayName,
         text: '👦 Menú Guille: ' + guilleMeal + '\n👶 Menú Samuel: ' + samuelMeal + '\n💼 Menú padres: ' + dayMenu.parentsLunch + '\n🌙 Cena familiar: ' + dayMenu.dinner
+      }
+    };
+  }
+
+  extractDishFromMenuQuery(clean) {
+    let dish = '';
+    // 1. Si hay dos puntos o coma separando la instrucción del plato:
+    const colonOrCommaMatch = clean.match(/[:,-]\s*([^:,]+)$/);
+    if (colonOrCommaMatch && colonOrCommaMatch[1].trim().length >= 2) {
+      dish = colonOrCommaMatch[1].trim();
+    } else {
+      // 2. Extracción semántica eliminando metadatos de la frase
+      dish = clean
+        .replace(/^(apunta|apuntar|añade|anade|añadir|pon\b|poner|agrega|agregar|guarda|guardar|cambia|cambiar|actualiza|actualizar|registra|registrar|escribe|escribir)\s+/i, '')
+        .replace(/(en\s+)?(el\s+)?men[uú](\s+infantil|\s+escolar|\s+semanal)?/gi, '')
+        .replace(/(de\s+|para\s+)?(guillermo|guille|samuel|samu|los\s+niños|los\s+ninos|los\s+hijos|los\s+padres|los\s+pap[aá]s|las\s+mam[aá]s|la\s+familia)/gi, '')
+        .replace(/(el\s+|para\s+el\s+|del\s+|para\s+)?(lunes|martes|mi[eé]rcoles|miercoles|jueves|viernes|s[aá]bado|sabado|domingo|hoy|mañana|manana)/gi, '')
+        .replace(/\b(que\s+sea|que\s+haya|toca|hay|de\s+comer|de\s+cenar|comer[aá]n?|cenar[aá]n?|comida|cena|almuerzo)\b/gi, '')
+        .replace(/^[:,\s-]+|[:,\s-]+$/g, '')
+        .trim();
+    }
+
+    // Quitar conectores iniciales sobrantes
+    dish = dish.replace(/^(que\s+|de\s+|un\s+|una\s+)/i, '').trim();
+
+    if (!dish || dish.length < 2) {
+      dish = 'Plato del día';
+    } else {
+      dish = dish.charAt(0).toUpperCase() + dish.slice(1);
+    }
+    return dish;
+  }
+
+  handleMenuUpdate(query, db, currentDate) {
+    const menus = db.getAll().menus || {};
+    let targetDay = currentDate.getDay();
+    let isTomorrow = false;
+
+    if (query.includes('mañana') || query.includes('manana')) {
+      targetDay = (targetDay + 1) % 7;
+      isTomorrow = true;
+    } else if (query.includes('hoy')) {
+      targetDay = currentDate.getDay();
+    } else {
+      for (const [name, idx] of Object.entries(DAY_NAMES_TO_INDEX)) {
+        if (query.includes(name)) {
+          targetDay = idx;
+          break;
+        }
+      }
+    }
+
+    const dayKey = DAYS_KEY_MAP[targetDay] || 'monday';
+    const dayName = DAYS_ES[targetDay];
+
+    if (!menus[dayKey]) {
+      menus[dayKey] = {
+        name: dayName.charAt(0).toUpperCase() + dayName.slice(1),
+        guilleLunch: '',
+        samuelLunch: '',
+        kidsLunch: '',
+        parentsLunch: '',
+        dinner: ''
+      };
+    }
+
+    const dayMenu = menus[dayKey];
+    const dish = this.extractDishFromMenuQuery(query);
+
+    const isGuille = query.includes('guillermo') || query.includes('guille');
+    const isSamuel = query.includes('samuel') || query.includes('samu');
+    const isKids = !isGuille && !isSamuel && (query.includes('niño') || query.includes('niña') || query.includes('nino') || query.includes('infantil') || query.includes('hijo') || query.includes('colegio') || query.includes('guarderia') || query.includes('guardería'));
+    const isDinner = query.includes('cena') || query.includes('cenar');
+    const isParents = query.includes('padre') || query.includes('papá') || query.includes('papa') || query.includes('mama') || query.includes('mamá');
+
+    let spoken = '';
+    let targetField = '';
+
+    if (isGuille) {
+      targetField = 'guilleLunch';
+      dayMenu.guilleLunch = dish;
+      const sLunch = (dayMenu.samuelLunch || '').trim();
+      dayMenu.kidsLunch = sLunch
+        ? `Guille: ${dish} | Samuel: ${sLunch}`
+        : `Guille: ${dish}`;
+      spoken = `He apuntado en el menú del ${dayName} para Guille: ${dish}.`;
+    } else if (isSamuel) {
+      targetField = 'samuelLunch';
+      dayMenu.samuelLunch = dish;
+      const gLunch = (dayMenu.guilleLunch || '').trim();
+      dayMenu.kidsLunch = gLunch
+        ? `Guille: ${gLunch} | Samuel: ${dish}`
+        : `Samuel: ${dish}`;
+      spoken = `He apuntado en el menú del ${dayName} para Samuel: ${dish}.`;
+    } else if (isKids) {
+      targetField = 'kidsLunch';
+      dayMenu.guilleLunch = dish;
+      dayMenu.samuelLunch = dish;
+      dayMenu.kidsLunch = dish;
+      spoken = `He apuntado en el menú infantil del ${dayName} para Guille y Samuel: ${dish}.`;
+    } else if (isDinner) {
+      targetField = 'dinner';
+      dayMenu.dinner = dish;
+      spoken = `He apuntado para cenar el ${dayName}: ${dish}.`;
+    } else if (isParents) {
+      targetField = 'parentsLunch';
+      dayMenu.parentsLunch = dish;
+      spoken = `He apuntado en la comida de los papás del ${dayName}: ${dish}.`;
+    } else {
+      // Default: menú escolar infantil de la semana
+      targetField = 'kidsLunch';
+      dayMenu.guilleLunch = dish;
+      dayMenu.samuelLunch = dish;
+      dayMenu.kidsLunch = dish;
+      spoken = `He apuntado en el menú del ${dayName}: ${dish}.`;
+    }
+
+    db.getAll().menus = menus;
+    db.saveData();
+
+    return {
+      spokenResponse: spoken,
+      actionTaken: true,
+      actionType: 'menu_update',
+      actionData: {
+        day: dayKey,
+        dayName: dayName,
+        dish: dish,
+        field: targetField,
+        menu: dayMenu
+      },
+      card: {
+        title: `Menú de ${dayName} Actualizado 📋`,
+        text: `👦 Menú Guille: ${dayMenu.guilleLunch || 'Sin planificar'}\n👶 Menú Samuel: ${dayMenu.samuelLunch || 'Sin planificar'}\n💼 Menú papás: ${dayMenu.parentsLunch || 'Sin planificar'}\n🌙 Cena familiar: ${dayMenu.dinner || 'Sin planificar'}`
       }
     };
   }

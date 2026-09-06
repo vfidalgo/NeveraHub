@@ -147,3 +147,46 @@ test('Asistente Virtual: Consumo parcial de unidades y consulta de stock', () =>
     db.remove('inventory', newItem.id);
   }
 });
+
+test('Asistente Virtual: Actualización de Menú Infantil y Cenas por Voz', () => {
+  const refDate = new Date('2026-09-07T12:00:00Z'); // Lunes
+  const backupMenus = JSON.parse(JSON.stringify(db.getAll().menus || {}));
+
+  try {
+    // 1. "Apunta el menu de guillermo para el lunes, merluza y pasta"
+    const resGuille = assistantEngine.processQuery('Apunta el menu de guillermo para el lunes, merluza y pasta', db, refDate);
+    assert.strictEqual(resGuille.actionTaken, true);
+    assert.strictEqual(resGuille.actionType, 'menu_update');
+    assert.ok(resGuille.spokenResponse.includes('Guille'));
+    assert.ok(resGuille.spokenResponse.includes('Merluza y pasta'));
+    assert.ok(resGuille.spokenResponse.includes('lunes'));
+    
+    const mondayMenu = db.getAll().menus.monday;
+    assert.strictEqual(mondayMenu.guilleLunch, 'Merluza y pasta');
+    assert.ok(mondayMenu.kidsLunch.includes('Guille: Merluza y pasta'));
+
+    // 2. "Apunta el menu de Samuel para el martes puré de verduras con pollo"
+    const resSamu = assistantEngine.processQuery('Apunta el menu de Samuel para el martes puré de verduras con pollo', db, refDate);
+    assert.strictEqual(resSamu.actionTaken, true);
+    assert.strictEqual(resSamu.actionType, 'menu_update');
+    assert.ok(resSamu.spokenResponse.includes('Samuel'));
+    assert.ok(resSamu.spokenResponse.includes('Puré de verduras con pollo'));
+    assert.ok(resSamu.spokenResponse.includes('martes'));
+
+    const tuesdayMenu = db.getAll().menus.tuesday;
+    assert.strictEqual(tuesdayMenu.samuelLunch, 'Puré de verduras con pollo');
+
+    // 3. "Pon de cena el jueves tortilla de patatas"
+    const resCena = assistantEngine.processQuery('Pon de cena el jueves tortilla de patatas', db, refDate);
+    assert.strictEqual(resCena.actionTaken, true);
+    assert.strictEqual(resCena.actionType, 'menu_update');
+    assert.ok(resCena.spokenResponse.toLowerCase().includes('tortilla de patatas'));
+    assert.ok(resCena.spokenResponse.includes('jueves'));
+
+    const thursdayMenu = db.getAll().menus.thursday;
+    assert.strictEqual(thursdayMenu.dinner, 'Tortilla de patatas');
+  } finally {
+    db.getAll().menus = backupMenus;
+    db.saveData();
+  }
+});

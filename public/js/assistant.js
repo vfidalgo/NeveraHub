@@ -1,4 +1,4 @@
-﻿/**
+/**
  * NeveraVoice: Controlador del Asistente Virtual por Voz para el Kiosko de NeveraHub
  * Soporta tanto el puente nativo AndroidBridge (TextToSpeech + SpeechRecognizer)
  * como la Web Speech API del navegador en modo PWA/escritorio.
@@ -13,6 +13,9 @@
     recognition: null,
     synth: window.speechSynthesis || null,
     hasNativeBridge: false,
+    activeUntil: 0,
+    sessionInterval: null,
+    restartTimeout: null,
 
     init() {
       this.hasNativeBridge = !!(window.AndroidBridge && typeof window.AndroidBridge.startListening === 'function');
@@ -32,14 +35,34 @@
 
         this.recognition.onstart = () => this.onSpeechState('listening');
         this.recognition.onend = () => {
-          if (this.isListening) {
+          this.isListening = false;
+          // Si la ventana de 2 minutos sigue activa y no estamos hablando, reanudar escucha
+          if (Date.now() < this.activeUntil && !this.isSpeaking) {
+            if (this.restartTimeout) clearTimeout(this.restartTimeout);
+            this.restartTimeout = setTimeout(() => {
+              if (Date.now() < this.activeUntil && !this.isSpeaking && !this.isListening) {
+                this.startListening();
+              }
+            }, 300);
+          } else if (this.isListening) {
             this.onSpeechState('processing');
           }
         };
+
         this.recognition.onerror = (e) => {
           console.warn('SpeechRecognition error:', e.error);
-          this.onSpeechState('error');
+          if (e.error === 'no-speech' && Date.now() < this.activeUntil && !this.isSpeaking) {
+            if (this.restartTimeout) clearTimeout(this.restartTimeout);
+            this.restartTimeout = setTimeout(() => {
+              if (Date.now() < this.activeUntil && !this.isSpeaking && !this.isListening) {
+                this.startListening();
+              }
+            }, 350);
+          } else {
+            this.onSpeechState('error');
+          }
         };
+
         this.recognition.onresult = (event) => {
           const transcript = event.results[0][0].transcript;
           this.onSpeechResult(transcript);
@@ -48,98 +71,148 @@
     },
 
     bindEvents() {
+      // 1. Botón de micrófono en la cabecera
       const btn = document.getElementById('btn-voice-assistant');
       if (btn) {
-        btn.addEventListener('click', () => this.toggleListening());
+        btn.addEventListener('click', () => {
+          if (this.isListening) {
+            this.stopListening(true);
+          } else {
+            this.notifyInteraction('header_mic');
+          }
+        });
       }
 
+      // 2. Botón de cerrar modal HUD
       const closeBtn = document.getElementById('btn-close-voice-hud');
       if (closeBtn) {
-        closeBtn.addEventListener('click', () => this.closeHud());
+        closeBtn.addEventListener('click', () => this.closeHud(true));
       }
 
-      // Atajo de teclado: Tecla "M" para activar micrófono
+      // 3. Atajo de teclado: Tecla "M" para activar micrófono
       document.addEventListener('keydown', (e) => {
         if (e.key === 'm' || e.key === 'M') {
-          // Ignorar si está escribiendo en un input
           const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
           if (activeTag !== 'input' && activeTag !== 'textarea') {
             e.preventDefault();
-            this.toggleListening();
+            if (this.isListening) {
+              this.stopListening(true);
+            } else {
+              this.notifyInteraction('keyboard_m');
+            }
           }
         }
       });
+
+      // 4. Interacción en pantalla (toques, clics): Activa o renueva la ventana de 2 minutos de escucha
+      let lastTouchThrottle = 0;
+      const handleUserInteraction = (e) => {
+        if (e.target && (e.target.closest('#btn-close-voice-hud') || e.target.closest('.voice-hud-close'))) {
+          return;
+        }
+        const now = Date.now();
+        if (now - lastTouchThrottle > 2500) {
+          lastTouchThrottle = now;
+          this.notifyInteraction('screen_interaction');
+        } else {
+          this.activeUntil = Math.max(this.activeUntil, now + 120000);
+        }
+      };
+
+      window.addEventListener('pointerdown', handleUserInteraction, { passive: true });
+      window.addEventListener('touchstart', handleUserInteraction, { passive: true });
     },
 
-    toggleListening() {
-      if (this.isListening) {
-        this.stopListening();
-      } else {
+    // -------------------------------------------------------------
+    // GESTIÓN DE SESIÓN ACTIVA DE 2 MINUTOS
+    // -------------------------------------------------------------
+    notifyInteraction(source = 'interaction') {
+      const now = Date.now();
+      this.activeUntil = now + 120000; // 120 segundos
+      console.log(`🎙️ Sesión de audio activa (${source}) hasta:`, new Date(this.activeUntil).toLocaleTimeString());
+
+      this.startSessionTimer();
+      this.updateSessionBadge(true);
+
+      if (!this.isSpeaking && !this.isListening) {
         this.startListening();
       }
     },
 
-    startListening() {
-      this.stopSpeaking();
-      this.isListening = true;
-      this.openHud();
-      this.updateHudState('listening', 'Te escucho... habla con naturalidad', '');
+    startSessionTimer() {
+      if (this.sessionInterval) return;
+      this.updateTimerDisplay();
 
-      if (this.hasNativeBridge) {
-        try {
-          window.AndroidBridge.startListening();
-          return;
-        } catch (err) {
-          console.warn('Error al invocar AndroidBridge.startListening:', err);
+      this.sessionInterval = setInterval(() => {
+        const remaining = Math.max(0, Math.ceil((this.activeUntil - Date.now()) / 1000));
+        this.updateTimerDisplay(remaining);
+
+        if (remaining <= 0) {
+          this.onSessionExpired();
         }
+      }, 1000);
+    },
+
+    updateTimerDisplay(secondsRemaining) {
+      const remaining = typeof secondsRemaining === 'number'
+        ? secondsRemaining
+        : Math.max(0, Math.ceil((this.activeUntil - Date.now()) / 1000));
+
+      const mins = Math.floor(remaining / 60);
+      const secs = remaining % 60;
+      const formatted = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+      const headerTimerEl = document.getElementById('voice-session-timer');
+      if (headerTimerEl) headerTimerEl.textContent = formatted;
+
+      const hudTimerEl = document.getElementById('voice-hud-session-timer');
+      if (hudTimerEl) hudTimerEl.textContent = `🎙️ Activo: ${formatted}`;
+    },
+
+    updateSessionBadge(visible) {
+      const badge = document.getElementById('badge-voice-session');
+      if (badge) {
+        badge.style.display = visible ? 'inline-flex' : 'none';
+      }
+      const hudPill = document.getElementById('voice-hud-session-pill');
+      if (hudPill) {
+        hudPill.style.display = visible ? 'inline-flex' : 'none';
+      }
+    },
+
+    onSessionExpired() {
+      console.log('🎙️ Sesión de 2 minutos de escucha finalizada.');
+      if (this.sessionInterval) {
+        clearInterval(this.sessionInterval);
+        this.sessionInterval = null;
+      }
+      this.activeUntil = 0;
+      this.updateSessionBadge(false);
+
+      if (this.isListening) {
+        this.stopListening(false);
       }
 
-      if (this.recognition) {
-        try {
-          this.recognition.start();
-        } catch (err) {
-          console.warn('Error al iniciar SpeechRecognition:', err);
-          this.onSpeechState('listening');
-        }
+      const container = document.getElementById('voice-hud-container');
+      const currentStatus = container ? container.getAttribute('data-status') : '';
+      if (currentStatus === 'idle' || currentStatus === 'listening') {
+        this.closeHud(false);
+      }
+    },
+
+    toggleListening() {
+      if (this.isListening) {
+        this.stopListening(true);
       } else {
-        this.updateHudState('error', 'El reconocimiento de voz no está soportado en este navegador.', '');
+        this.notifyInteraction('toggle_manual');
       }
     },
-
-    stopListening() {
-      this.isListening = false;
-      if (this.hasNativeBridge) {
-        try {
-          window.AndroidBridge.stopListening();
-        } catch (err) {}
-      }
-      if (this.recognition) {
-        try {
-          this.recognition.stop();
-        } catch (err) {}
-      }
-    },
-
-    onSpeechState(state) {
-      console.log('🎙️ Estado de voz:', state);
-      if (state === 'listening') {
-        this.isListening = true;
-        this.updateHudState('listening', 'Te escucho... di por ejemplo "¿Qué hay de cenar?"', '');
-      } else if (state === 'processing') {
-        this.isListening = false;
-        this.updateHudState('processing', 'Pensando...', '');
-      } else if (state === 'idle') {
-        this.isListening = false;
-        this.updateHudState('idle', 'Pulsa el micrófono para hablar', '');
-      } else if (state === 'error') {
-        this.isListening = false;
-        this.updateHudState('error', 'No te he entendido bien. Prueba a pulsar de nuevo.', '');
-      }
-    },
-
     async onSpeechResult(transcript) {
       this.isListening = false;
       this.updateHudState('processing', 'Consultando con la nevera...', `"${transcript}"`);
+
+      // Renovar ventana de 2 minutos tras recibir orden de voz
+      this.notifyInteraction('speech_result');
 
       try {
         const response = await fetch('/api/assistant/query', {
@@ -157,12 +230,12 @@
           this.renderAssistantResponse(data, transcript);
           this.speak(data.spokenResponse);
 
-          // Si se ejecutó una acción, refrescar vistas de la aplicación
+          // Si se ejecutó una acción en la base de datos (menú, inventario, hábitos), refrescar app
           if (data.actionTaken && window.NeveraApp) {
-            if (typeof window.NeveraApp.refreshData === 'function') {
+            if (typeof window.NeveraApp.refreshAllData === 'function') {
+              window.NeveraApp.refreshAllData();
+            } else if (typeof window.NeveraApp.refreshData === 'function') {
               window.NeveraApp.refreshData();
-            } else if (typeof window.NeveraApp.renderCurrentView === 'function') {
-              window.NeveraApp.renderCurrentView();
             }
           }
         } else {
@@ -179,20 +252,31 @@
 
     speak(text) {
       if (!text) return;
+      this.stopListening(false); // Pausar reconocimiento para evitar auto-escucha
       this.isSpeaking = true;
       this.setWaveAnimation(true);
+
+      const onSpeakingFinished = () => {
+        this.isSpeaking = false;
+        this.setWaveAnimation(false);
+        // Si la ventana de 2 minutos sigue activa, reanudar escucha de inmediato
+        if (Date.now() < this.activeUntil && !this.isListening) {
+          if (this.restartTimeout) clearTimeout(this.restartTimeout);
+          this.restartTimeout = setTimeout(() => {
+            if (Date.now() < this.activeUntil && !this.isSpeaking && !this.isListening) {
+              this.startListening();
+            }
+          }, 350);
+        }
+      };
 
       // 1. Prioridad: TextToSpeech nativo de Android
       if (this.hasNativeBridge && typeof window.AndroidBridge.speak === 'function') {
         try {
           window.AndroidBridge.speak(text);
-          // Simular tiempo de animación de voz
           const wordCount = text.split(' ').length;
-          const duration = Math.max(2000, wordCount * 300);
-          setTimeout(() => {
-            this.isSpeaking = false;
-            this.setWaveAnimation(false);
-          }, duration);
+          const duration = Math.max(2000, wordCount * 320);
+          setTimeout(onSpeakingFinished, duration);
           return;
         } catch (err) {
           console.warn('Error al invocar AndroidBridge.speak:', err);
@@ -208,26 +292,20 @@
           utterance.rate = 1.0;
           utterance.pitch = 1.0;
 
-          // Intentar elegir una voz en español
           const voices = this.synth.getVoices();
           const esVoice = voices.find(v => v.lang && v.lang.startsWith('es'));
           if (esVoice) utterance.voice = esVoice;
 
-          utterance.onend = () => {
-            this.isSpeaking = false;
-            this.setWaveAnimation(false);
-          };
-          utterance.onerror = () => {
-            this.isSpeaking = false;
-            this.setWaveAnimation(false);
-          };
+          utterance.onend = onSpeakingFinished;
+          utterance.onerror = onSpeakingFinished;
 
           this.synth.speak(utterance);
         } catch (e) {
           console.warn('Error en SpeechSynthesis:', e);
-          this.isSpeaking = false;
-          this.setWaveAnimation(false);
+          onSpeakingFinished();
         }
+      } else {
+        onSpeakingFinished();
       }
     },
 
@@ -249,11 +327,17 @@
       if (hud) {
         hud.classList.add('active');
       }
+      this.updateTimerDisplay();
     },
 
-    closeHud() {
-      this.stopListening();
-      this.stopSpeaking();
+    closeHud(explicit = true) {
+      if (explicit) {
+        this.stopListening(true);
+        this.stopSpeaking();
+      } else {
+        this.stopListening(false);
+        this.stopSpeaking();
+      }
       const hud = document.getElementById('voice-hud-modal');
       if (hud) {
         hud.classList.remove('active');

@@ -30,6 +30,10 @@
           <span class="voice-dot"></span>
           🎙️ Hablar
         </button>
+        <div class="badge-voice-session" id="badge-voice-session" style="display: none;" title="Escucha de voz activa (2 minutos desde la última interacción)">
+          <span class="voice-session-pulse"></span>
+          <span id="voice-session-timer">2:00</span>
+        </div>
         <div class="header-members-bar" id="header-members-bar" title="Seleccionar Perfil">
           <button class="member-chip-btn active-user" data-id="all" onclick="NeveraVision.selectMemberManually('all')" title="Toda la familia">🏠</button>
           <button class="member-chip-btn" data-id="m1" onclick="NeveraVision.selectMemberManually('m1')" title="Papá">👨</button>
@@ -410,6 +414,10 @@
         <div class="voice-hud-title">
           <span class="voice-orb">🎙️</span>
           <span>NeveraBot • Asistente de Cocina</span>
+          <span class="voice-hud-session-pill" id="voice-hud-session-pill" style="display: none;">
+            <span class="voice-session-pulse"></span>
+            <span id="voice-hud-session-timer">Activo: 2:00</span>
+          </span>
         </div>
         <button class="voice-hud-close" onclick="NeveraVoice.closeHud()">✕</button>
       </div>
@@ -432,6 +440,8 @@
 
       <div class="voice-hud-suggestions">
         <div class="suggestion-chip" onclick="NeveraVoice.sendManualQuery('¿Qué hay hoy de comer?')">🍲 ¿Qué hay de comer?</div>
+        <div class="suggestion-chip" onclick="NeveraVoice.sendManualQuery('Apunta el menu de guillermo para el lunes, merluza y pasta')">👦 Menú Guille lunes</div>
+        <div class="suggestion-chip" onclick="NeveraVoice.sendManualQuery('Apunta el menu de Samuel para el martes puré de verduras')">👶 Menú Samuel martes</div>
         <div class="suggestion-chip" onclick="NeveraVoice.sendManualQuery('¿Qué alimentos caducan pronto?')">⚠️ ¿Qué caduca pronto?</div>
         <div class="suggestion-chip" onclick="NeveraVoice.sendManualQuery('¿Qué receta me recomiendas?')">🍳 Recomiéndame receta</div>
         <div class="suggestion-chip" onclick="NeveraVoice.sendManualQuery('Guille se ha lavado los dientes')">🪥 Dientes de Guille</div>
