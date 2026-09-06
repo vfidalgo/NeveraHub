@@ -29,6 +29,28 @@ const DAY_NAMES_TO_INDEX = {
 };
 
 class AssistantEngine {
+  constructor() {
+    this.conversationSession = null;
+  }
+
+  isConversationActive() {
+    if (!this.conversationSession) return false;
+    if (Date.now() > this.conversationSession.expiresAt) {
+      this.conversationSession = null;
+      return false;
+    }
+    return true;
+  }
+
+  resetConversation() {
+    this.conversationSession = null;
+  }
+
+  getConversationState() {
+    if (!this.isConversationActive()) return null;
+    return this.conversationSession;
+  }
+
   /**
    * Procesa una consulta en lenguaje natural
    * @param {string} query Texto hablado por el usuario
@@ -52,6 +74,28 @@ class AssistantEngine {
     const dayOfWeek = refDate.getDay();
     const dayNameEs = DAYS_ES[dayOfWeek];
 
+    // 0. Si hay una conversación guiada activa (multi-turno)
+    if (this.isConversationActive()) {
+      const isCancel = /^(cancela|cancelar|olv[ií]dalo|olvidalo|d[eé]jalo|dejalo|para|parar|salir|anula|anular|no nada)$/i.test(clean) || /\b(cancela|cancelar|olv[ií]dalo|olvidalo|d[eé]jalo|dejalo|anula|anular|no nada|para ya|detente)\b/i.test(clean);
+      if (isCancel) {
+        this.resetConversation();
+        return {
+          spokenResponse: 'De acuerdo, he cancelado la acción.',
+          actionTaken: false,
+          actionType: 'conversation_cancel',
+          inConversationFlow: false,
+          card: { title: 'Acción Cancelada', text: 'Operación cancelada. ¿En qué más puedo ayudarte?' }
+        };
+      }
+
+      const isGreeting = clean.includes('buenos días') || clean.includes('buenos dias') || clean.includes('hola');
+      if (!isGreeting) {
+        return this.handleConversationTurn(clean, db, refDate);
+      } else {
+        this.resetConversation();
+      }
+    }
+
     // 1. Saludo / Resumen general del día
     if (clean.includes('buenos días') || clean.includes('buenos dias') || clean.includes('hola') || clean.includes('resumen del día') || clean.includes('resumen del dia') || clean.includes('cómo estamos') || clean === 'nevera') {
       return this.handleGeneralSummary(clean, db, refDate);
@@ -65,11 +109,10 @@ class AssistantEngine {
     const mentionsChildOrMember = /(guillermo|guille|samuel|samu|niñ[oa]s?|hijos?|infantil|colegio|guarder[ií]a|padres|pap[aá]s?)/i.test(clean);
 
     if (!isCalendarEvent && isUpdateVerb) {
-      if (mentionsMenuOrMeal && (mentionsDay || mentionsChildOrMember || clean.includes('para') || clean.includes('de'))) {
-        return this.handleMenuUpdate(clean, db, refDate);
-      }
-      if (mentionsChildOrMember && mentionsDay && !clean.includes('nevera') && !clean.includes('despensa') && !clean.includes('congelador')) {
-        return this.handleMenuUpdate(clean, db, refDate);
+      if (mentionsMenuOrMeal || (mentionsChildOrMember && (clean.includes('para') || clean.includes('de') || mentionsDay))) {
+        if (!clean.includes('nevera') && !clean.includes('despensa') && !clean.includes('congelador')) {
+          return this.handleMenuUpdate(clean, db, refDate);
+        }
       }
     }
 
@@ -253,16 +296,57 @@ class AssistantEngine {
     };
   }
 
-  extractDishFromMenuQuery(clean) {
+  detectMenuTarget(clean) {
+    if (clean.includes('guillermo') || clean.includes('guille')) {
+      return { target: 'guille', targetName: 'Guille' };
+    }
+    if (clean.includes('samuel') || clean.includes('samu')) {
+      return { target: 'samuel', targetName: 'Samuel' };
+    }
+    if (clean.includes('niño') || clean.includes('niña') || clean.includes('nino') || clean.includes('infantil') || clean.includes('colegio') || clean.includes('guarderia') || clean.includes('guardería') || clean.includes('ambos') || clean.includes('los dos')) {
+      return { target: 'kids', targetName: 'los niños (Guille y Samuel)' };
+    }
+    if (clean.includes('cena') || clean.includes('cenar') || clean.includes('noche')) {
+      return { target: 'dinner', targetName: 'la cena' };
+    }
+    if (clean.includes('padre') || clean.includes('papá') || clean.includes('papa') || clean.includes('mama') || clean.includes('mamá') || clean.includes('adultos') || clean.includes('trabajo')) {
+      return { target: 'parents', targetName: 'los papás' };
+    }
+    return null;
+  }
+
+  detectDay(clean, refDate = new Date()) {
+    if (clean.includes('mañana') || clean.includes('manana')) {
+      const idx = (refDate.getDay() + 1) % 7;
+      return { dayIndex: idx, dayName: DAYS_ES[idx] };
+    }
+    if (clean.includes('hoy')) {
+      const idx = refDate.getDay();
+      return { dayIndex: idx, dayName: DAYS_ES[idx] };
+    }
+    for (const [name, idx] of Object.entries(DAY_NAMES_TO_INDEX)) {
+      const r = new RegExp(`\\b${name}\\b`, 'i');
+      if (r.test(clean)) {
+        return { dayIndex: idx, dayName: DAYS_ES[idx] };
+      }
+    }
+    return null;
+  }
+
+  extractDishCandidate(clean) {
     let dish = '';
-    // 1. Si hay dos puntos o coma separando la instrucción del plato:
     const colonOrCommaMatch = clean.match(/[:,-]\s*([^:,]+)$/);
     if (colonOrCommaMatch && colonOrCommaMatch[1].trim().length >= 2) {
-      dish = colonOrCommaMatch[1].trim();
-    } else {
-      // 2. Extracción semántica eliminando metadatos de la frase
+      const cand = colonOrCommaMatch[1].trim();
+      const isOnlyMeta = /^(lunes|martes|mi[eé]rcoles|miercoles|jueves|viernes|s[aá]bado|sabado|domingo|guillermo|guille|samuel|samu|los\s+niños|los\s+padres|la\s+cena)$/i.test(cand);
+      if (!isOnlyMeta) {
+        dish = cand;
+      }
+    }
+
+    if (!dish) {
       dish = clean
-        .replace(/^(apunta|apuntar|añade|anade|añadir|pon\b|poner|agrega|agregar|guarda|guardar|cambia|cambiar|actualiza|actualizar|registra|registrar|escribe|escribir)\s+/i, '')
+        .replace(/^(apunta|apuntar|añade|anade|añadir|pon\b|poner|agrega|agregar|guarda|guardar|cambia|cambiar|actualiza|actualizar|registra|registrar|escribe|escribir|modifica|modificar)\s+/i, '')
         .replace(/(en\s+)?(el\s+)?men[uú](\s+infantil|\s+escolar|\s+semanal)?/gi, '')
         .replace(/(de\s+|para\s+)?(guillermo|guille|samuel|samu|los\s+niños|los\s+ninos|los\s+hijos|los\s+padres|los\s+pap[aá]s|las\s+mam[aá]s|la\s+familia)/gi, '')
         .replace(/(el\s+|para\s+el\s+|del\s+|para\s+)?(lunes|martes|mi[eé]rcoles|miercoles|jueves|viernes|s[aá]bado|sabado|domingo|hoy|mañana|manana)/gi, '')
@@ -271,38 +355,33 @@ class AssistantEngine {
         .trim();
     }
 
-    // Quitar conectores iniciales sobrantes
     dish = dish.replace(/^(que\s+|de\s+|un\s+|una\s+)/i, '').trim();
 
     if (!dish || dish.length < 2) {
-      dish = 'Plato del día';
-    } else {
-      dish = dish.charAt(0).toUpperCase() + dish.slice(1);
+      return null;
     }
-    return dish;
+
+    const fillerRegex = /^(menu|menú|comida|cena|almuerzo|para|de|el|la|los|un|una|plato)$/i;
+    if (fillerRegex.test(dish)) return null;
+
+    return dish.charAt(0).toUpperCase() + dish.slice(1);
   }
 
-  handleMenuUpdate(query, db, currentDate) {
+  cleanUpDishInput(clean) {
+    let dish = clean
+      .replace(/^(pues\s+|va a comer\s+|van a comer\s+|vamos a cenar\s+|ponle\s+|pon\s+|toca\s+|comerán?\s+|cenarán?\s+|de comer\s+|de cena\s+|para comer\s+|para cenar\s+)/i, '')
+      .replace(/^(que sea\s+|que haya\s+|un plato de\s+|un\s+|una\s+|de\s+|el\s+|la\s+)/i, '')
+      .replace(/^[:,\s-]+|[:,\s-]+$/g, '')
+      .trim();
+
+    if (!dish || dish.length < 2) return null;
+    return dish.charAt(0).toUpperCase() + dish.slice(1);
+  }
+
+  executeMenuSave(slots, db) {
     const menus = db.getAll().menus || {};
-    let targetDay = currentDate.getDay();
-    let isTomorrow = false;
-
-    if (query.includes('mañana') || query.includes('manana')) {
-      targetDay = (targetDay + 1) % 7;
-      isTomorrow = true;
-    } else if (query.includes('hoy')) {
-      targetDay = currentDate.getDay();
-    } else {
-      for (const [name, idx] of Object.entries(DAY_NAMES_TO_INDEX)) {
-        if (query.includes(name)) {
-          targetDay = idx;
-          break;
-        }
-      }
-    }
-
-    const dayKey = DAYS_KEY_MAP[targetDay] || 'monday';
-    const dayName = DAYS_ES[targetDay];
+    const dayKey = DAYS_KEY_MAP[slots.dayIndex] || 'monday';
+    const dayName = slots.dayName || DAYS_ES[slots.dayIndex] || 'lunes';
 
     if (!menus[dayKey]) {
       menus[dayKey] = {
@@ -316,18 +395,12 @@ class AssistantEngine {
     }
 
     const dayMenu = menus[dayKey];
-    const dish = this.extractDishFromMenuQuery(query);
-
-    const isGuille = query.includes('guillermo') || query.includes('guille');
-    const isSamuel = query.includes('samuel') || query.includes('samu');
-    const isKids = !isGuille && !isSamuel && (query.includes('niño') || query.includes('niña') || query.includes('nino') || query.includes('infantil') || query.includes('hijo') || query.includes('colegio') || query.includes('guarderia') || query.includes('guardería'));
-    const isDinner = query.includes('cena') || query.includes('cenar');
-    const isParents = query.includes('padre') || query.includes('papá') || query.includes('papa') || query.includes('mama') || query.includes('mamá');
-
+    const dish = slots.dish;
+    const target = slots.target;
     let spoken = '';
     let targetField = '';
 
-    if (isGuille) {
+    if (target === 'guille') {
       targetField = 'guilleLunch';
       dayMenu.guilleLunch = dish;
       const sLunch = (dayMenu.samuelLunch || '').trim();
@@ -335,7 +408,7 @@ class AssistantEngine {
         ? `Guille: ${dish} | Samuel: ${sLunch}`
         : `Guille: ${dish}`;
       spoken = `He apuntado en el menú del ${dayName} para Guille: ${dish}.`;
-    } else if (isSamuel) {
+    } else if (target === 'samuel') {
       targetField = 'samuelLunch';
       dayMenu.samuelLunch = dish;
       const gLunch = (dayMenu.guilleLunch || '').trim();
@@ -343,22 +416,21 @@ class AssistantEngine {
         ? `Guille: ${gLunch} | Samuel: ${dish}`
         : `Samuel: ${dish}`;
       spoken = `He apuntado en el menú del ${dayName} para Samuel: ${dish}.`;
-    } else if (isKids) {
+    } else if (target === 'kids') {
       targetField = 'kidsLunch';
       dayMenu.guilleLunch = dish;
       dayMenu.samuelLunch = dish;
       dayMenu.kidsLunch = dish;
-      spoken = `He apuntado en el menú infantil del ${dayName} para Guille y Samuel: ${dish}.`;
-    } else if (isDinner) {
+      spoken = `He apuntado en el menú escolar del ${dayName} para Guille y Samuel: ${dish}.`;
+    } else if (target === 'dinner') {
       targetField = 'dinner';
       dayMenu.dinner = dish;
       spoken = `He apuntado para cenar el ${dayName}: ${dish}.`;
-    } else if (isParents) {
+    } else if (target === 'parents') {
       targetField = 'parentsLunch';
       dayMenu.parentsLunch = dish;
       spoken = `He apuntado en la comida de los papás del ${dayName}: ${dish}.`;
     } else {
-      // Default: menú escolar infantil de la semana
       targetField = 'kidsLunch';
       dayMenu.guilleLunch = dish;
       dayMenu.samuelLunch = dish;
@@ -368,11 +440,13 @@ class AssistantEngine {
 
     db.getAll().menus = menus;
     db.saveData();
+    this.resetConversation();
 
     return {
       spokenResponse: spoken,
       actionTaken: true,
       actionType: 'menu_update',
+      inConversationFlow: false,
       actionData: {
         day: dayKey,
         dayName: dayName,
@@ -385,6 +459,387 @@ class AssistantEngine {
         text: `👦 Menú Guille: ${dayMenu.guilleLunch || 'Sin planificar'}\n👶 Menú Samuel: ${dayMenu.samuelLunch || 'Sin planificar'}\n💼 Menú papás: ${dayMenu.parentsLunch || 'Sin planificar'}\n🌙 Cena familiar: ${dayMenu.dinner || 'Sin planificar'}`
       }
     };
+  }
+
+  handleConversationTurn(clean, db, refDate) {
+    const session = this.conversationSession;
+    if (!session) return this.processQuery(clean, db, refDate);
+
+    session.expiresAt = Date.now() + 60000;
+
+    if (session.flow === 'menu') {
+      return this.handleMenuConversationTurn(clean, db, refDate, session);
+    } else if (session.flow === 'consume') {
+      return this.handleConsumeConversationTurn(clean, db, refDate, session);
+    } else if (session.flow === 'inventory_add') {
+      return this.handleInventoryAddConversationTurn(clean, db, refDate, session);
+    }
+
+    this.resetConversation();
+    return this.processQuery(clean, db, refDate);
+  }
+
+  handleMenuConversationTurn(clean, db, refDate, session) {
+    const slots = session.slots;
+
+    // 1. Esperando destinatario
+    if (session.step === 'awaiting_target') {
+      const detectedTarget = this.detectMenuTarget(clean);
+      if (detectedTarget) {
+        slots.target = detectedTarget.target;
+        slots.targetName = detectedTarget.targetName;
+      } else {
+        return {
+          spokenResponse: '¿Para quién es el menú? Puedes decir: Guille, Samuel, los padres o la cena familiar.',
+          actionTaken: false,
+          actionType: 'conversation_prompt',
+          inConversationFlow: true,
+          expectedInput: 'target',
+          suggestionChips: ['Guille', 'Samuel', 'Padres', 'Cena familiar'],
+          card: {
+            title: '¿Para quién es el menú? 👤',
+            text: 'Indica si es para Guille, Samuel, los papás o la cena familiar.'
+          }
+        };
+      }
+
+      if (slots.dayIndex === null) {
+        session.step = 'awaiting_day';
+        return {
+          spokenResponse: `¿Para qué día de la semana quieres apuntar el menú de ${slots.targetName}?`,
+          actionTaken: false,
+          actionType: 'conversation_prompt',
+          inConversationFlow: true,
+          expectedInput: 'day',
+          suggestionChips: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo', 'Hoy', 'Mañana'],
+          card: {
+            title: `Menú de ${slots.targetName} 📅`,
+            text: `¿Para qué día de la semana quieres apuntarlo?`
+          }
+        };
+      }
+
+      if (!slots.dish) {
+        session.step = 'awaiting_dish';
+        return {
+          spokenResponse: `Perfecto, ¿qué va a comer ${slots.targetName} el ${slots.dayName}?`,
+          actionTaken: false,
+          actionType: 'conversation_prompt',
+          inConversationFlow: true,
+          expectedInput: 'dish',
+          suggestionChips: [],
+          card: {
+            title: `Menú de ${slots.targetName} (${slots.dayName}) 🍽️`,
+            text: `¿Qué comida o plato quieres apuntar?`
+          }
+        };
+      }
+
+      return this.executeMenuSave(slots, db);
+    }
+
+    // 2. Esperando día
+    if (session.step === 'awaiting_day') {
+      const detectedDay = this.detectDay(clean, refDate);
+      if (detectedDay) {
+        slots.dayIndex = detectedDay.dayIndex;
+        slots.dayName = detectedDay.dayName;
+      }
+
+      const candidateDish = this.extractDishCandidate(clean);
+      if (candidateDish) {
+        slots.dish = candidateDish;
+      }
+
+      if (slots.dayIndex === null) {
+        return {
+          spokenResponse: `No he reconocido el día. ¿Es para el lunes, martes, miércoles, jueves, viernes, sábado o domingo?`,
+          actionTaken: false,
+          actionType: 'conversation_prompt',
+          inConversationFlow: true,
+          expectedInput: 'day',
+          suggestionChips: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
+          card: {
+            title: `Día de la semana para ${slots.targetName} 📅`,
+            text: 'Por favor, di un día (ej. Martes o Mañana)'
+          }
+        };
+      }
+
+      if (!slots.dish) {
+        session.step = 'awaiting_dish';
+        return {
+          spokenResponse: `Perfecto, ¿qué va a comer ${slots.targetName} el ${slots.dayName}?`,
+          actionTaken: false,
+          actionType: 'conversation_prompt',
+          inConversationFlow: true,
+          expectedInput: 'dish',
+          suggestionChips: [],
+          card: {
+            title: `Menú de ${slots.targetName} (${slots.dayName}) 🍽️`,
+            text: `¿Qué comida o plato quieres apuntar?`
+          }
+        };
+      }
+
+      return this.executeMenuSave(slots, db);
+    }
+
+    // 3. Esperando plato
+    if (session.step === 'awaiting_dish') {
+      const dish = this.cleanUpDishInput(clean);
+      if (dish && dish.length >= 2) {
+        slots.dish = dish;
+        return this.executeMenuSave(slots, db);
+      } else {
+        return {
+          spokenResponse: `No te he entendido bien el plato. ¿Qué va a comer ${slots.targetName} el ${slots.dayName}?`,
+          actionTaken: false,
+          actionType: 'conversation_prompt',
+          inConversationFlow: true,
+          expectedInput: 'dish',
+          suggestionChips: [],
+          card: {
+            title: `Menú de ${slots.targetName} (${slots.dayName}) 🍽️`,
+            text: 'Di el nombre del plato (ej. Puré de calabacín y merluza)'
+          }
+        };
+      }
+    }
+
+    this.resetConversation();
+    return this.processQuery(clean, db, refDate);
+  }
+
+  handleConsumeConversationTurn(clean, db, refDate, session) {
+    const slots = session.slots;
+    if (session.step === 'awaiting_amount') {
+      const wordNums = { 'un': 1, 'una': 1, 'uno': 1, 'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5, 'seis': 6, 'ocho': 8, 'diez': 10, 'doce': 12, 'media docena': 6, 'una docena': 12 };
+      let amount = null;
+      const numMatch = clean.match(/\b(\d+)\b/);
+      if (numMatch) {
+        amount = parseInt(numMatch[1], 10);
+      } else {
+        for (const [w, val] of Object.entries(wordNums)) {
+          const r = new RegExp(`\\b${w}\\b`, 'i');
+          if (r.test(clean)) {
+            amount = val;
+            break;
+          }
+        }
+      }
+
+      if (clean.includes('todo') || clean.includes('toda') || clean.includes('todas') || clean.includes('todos')) {
+        amount = slots.remainingUnits;
+      }
+
+      if (!amount || amount <= 0) {
+        return {
+          spokenResponse: `No he reconocido la cantidad. Por favor, dime cuántas unidades has consumido de ${slots.itemName} (por ejemplo: 1, 2, o todas).`,
+          actionTaken: false,
+          actionType: 'conversation_prompt',
+          inConversationFlow: true,
+          expectedInput: 'amount',
+          suggestionChips: [`1 ${slots.unitName}`, `2 ${slots.unitName}`, 'Todo lo que queda'],
+          card: {
+            title: `Consumo: ${slots.itemName}`,
+            text: `Quedan ${slots.remainingUnits} ${slots.unitName}. Indica una cantidad válida.`
+          }
+        };
+      }
+
+      const inventory = db.get('inventory') || [];
+      const item = inventory.find(i => i.id === slots.itemId);
+      if (!item) {
+        this.resetConversation();
+        return {
+          spokenResponse: 'El producto ya no se encuentra en el inventario.',
+          actionTaken: false,
+          actionType: 'none',
+          inConversationFlow: false
+        };
+      }
+
+      const actualConsumed = Math.min(amount, item.remainingUnits || slots.remainingUnits);
+      const newRemaining = (item.remainingUnits || slots.remainingUnits) - actualConsumed;
+
+      if (!Array.isArray(item.consumedHistory)) item.consumedHistory = [];
+      item.consumedHistory.push({
+        id: `c_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        date: slots.consumeDate,
+        amount: actualConsumed,
+        note: 'Consumo por diálogo guiado'
+      });
+
+      this.resetConversation();
+
+      if (newRemaining <= 0) {
+        db.remove('inventory', item.id);
+        return {
+          spokenResponse: `De acuerdo, has consumido ${actualConsumed} ${slots.unitName} de ${item.name} y lo he retirado del inventario porque se ha terminado.`,
+          actionTaken: true,
+          actionType: 'inventory_consume',
+          inConversationFlow: false,
+          actionData: item,
+          card: {
+            title: 'Producto Consumido',
+            text: `🗑️ ${item.name} retirado del inventario tras consumir sus últimas ${actualConsumed} unidades.`
+          }
+        };
+      } else {
+        item.remainingUnits = newRemaining;
+        item.quantity = `${newRemaining} ${slots.unitName} (de ${item.totalUnits || slots.totalUnits})`;
+        db.update('inventory', item.id, item);
+
+        const locEs = item.location === 'fridge' ? 'la nevera' : (item.location === 'pantry' ? 'la despensa' : 'el congelador');
+        return {
+          spokenResponse: `Anotado el consumo: has consumido ${actualConsumed} ${slots.unitName} de ${item.name}. Te quedan ${newRemaining} disponibles en ${locEs}.`,
+          actionTaken: true,
+          actionType: 'inventory_consume_partial',
+          inConversationFlow: false,
+          actionData: item,
+          card: {
+            title: `Consumo Parcial: ${item.name}`,
+            text: `📉 Consumidas: ${actualConsumed} ${slots.unitName}\n📦 Quedan: ${newRemaining} / ${item.totalUnits || slots.totalUnits} ${slots.unitName}`
+          }
+        };
+      }
+    }
+
+    this.resetConversation();
+    return this.processQuery(clean, db, refDate);
+  }
+
+  handleInventoryAddConversationTurn(clean, db, refDate, session) {
+    const slots = session.slots;
+    if (session.step === 'awaiting_item') {
+      let itemName = clean.trim()
+        .replace(/^(un|una|unos|unas|el|la|los|las)\s+/i, '')
+        .trim();
+
+      if (!itemName || itemName.length < 2) {
+        return {
+          spokenResponse: 'No he entendido el nombre del producto. ¿Qué alimento quieres añadir?',
+          actionTaken: false,
+          actionType: 'conversation_prompt',
+          inConversationFlow: true,
+          expectedInput: 'item'
+        };
+      }
+
+      this.resetConversation();
+      return this.handleAddInventory(`añade ${itemName} en ${slots.location === 'pantry' ? 'la despensa' : (slots.location === 'freezer' ? 'el congelador' : 'la nevera')}`, db, refDate);
+    }
+
+    this.resetConversation();
+    return this.processQuery(clean, db, refDate);
+  }
+
+  handleMenuUpdate(query, db, currentDate) {
+    const clean = query.trim().toLowerCase();
+    const targetObj = this.detectMenuTarget(clean);
+    const dayObj = this.detectDay(clean, currentDate);
+    const dishCandidate = this.extractDishCandidate(clean);
+
+    // Caso 1: Falta el destinatario
+    if (!targetObj) {
+      this.conversationSession = {
+        flow: 'menu',
+        step: 'awaiting_target',
+        slots: {
+          target: null,
+          targetName: null,
+          dayIndex: dayObj ? dayObj.dayIndex : null,
+          dayName: dayObj ? dayObj.dayName : null,
+          dish: dishCandidate || null
+        },
+        expiresAt: Date.now() + 60000
+      };
+
+      const dayMention = dayObj ? ` para el ${dayObj.dayName}` : '';
+      const dishMention = dishCandidate ? ` (${dishCandidate})` : '';
+
+      return {
+        spokenResponse: `¿Para quién es el menú${dayMention}${dishMention}? ¿Para Guille, Samuel, los padres o la cena familiar?`,
+        actionTaken: false,
+        actionType: 'conversation_prompt',
+        inConversationFlow: true,
+        expectedInput: 'target',
+        suggestionChips: ['Guille', 'Samuel', 'Padres', 'Cena familiar'],
+        card: {
+          title: 'Apunta Menú 📋',
+          text: `¿Para quién quieres apuntar el menú${dayMention}?\n(Guille, Samuel, Padres o Cena)`
+        }
+      };
+    }
+
+    // Caso 2: Falta el día de la semana
+    if (!dayObj) {
+      this.conversationSession = {
+        flow: 'menu',
+        step: 'awaiting_day',
+        slots: {
+          target: targetObj.target,
+          targetName: targetObj.targetName,
+          dayIndex: null,
+          dayName: null,
+          dish: dishCandidate || null
+        },
+        expiresAt: Date.now() + 60000
+      };
+
+      const dishMention = dishCandidate ? ` (${dishCandidate})` : '';
+      return {
+        spokenResponse: `¿Para qué día de la semana quieres apuntar el menú de ${targetObj.targetName}${dishMention}?`,
+        actionTaken: false,
+        actionType: 'conversation_prompt',
+        inConversationFlow: true,
+        expectedInput: 'day',
+        suggestionChips: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo', 'Hoy', 'Mañana'],
+        card: {
+          title: `Menú: ${targetObj.targetName} 📋`,
+          text: `¿Para qué día de la semana quieres apuntarlo?`
+        }
+      };
+    }
+
+    // Caso 3: Falta el plato
+    if (!dishCandidate) {
+      this.conversationSession = {
+        flow: 'menu',
+        step: 'awaiting_dish',
+        slots: {
+          target: targetObj.target,
+          targetName: targetObj.targetName,
+          dayIndex: dayObj.dayIndex,
+          dayName: dayObj.dayName,
+          dish: null
+        },
+        expiresAt: Date.now() + 60000
+      };
+
+      return {
+        spokenResponse: `Perfecto, ¿qué va a comer ${targetObj.targetName} el ${dayObj.dayName}?`,
+        actionTaken: false,
+        actionType: 'conversation_prompt',
+        inConversationFlow: true,
+        expectedInput: 'dish',
+        suggestionChips: [],
+        card: {
+          title: `Menú de ${targetObj.targetName}: ${dayObj.dayName} 🍽️`,
+          text: `¿Qué comida o plato quieres apuntar?`
+        }
+      };
+    }
+
+    // Caso 4: Todo presente en una sola orden
+    return this.executeMenuSave({
+      target: targetObj.target,
+      targetName: targetObj.targetName,
+      dayIndex: dayObj.dayIndex,
+      dayName: dayObj.dayName,
+      dish: dishCandidate
+    }, db);
   }
 
   handleRecipeRecommendation(db, currentDate) {
@@ -575,6 +1030,44 @@ class AssistantEngine {
 
     if (!Array.isArray(match.consumedHistory)) {
       match.consumedHistory = [];
+    }
+
+    // Si tiene unidades múltiples (> 1) y NO se especificó cantidad, iniciar diálogo guiado:
+    if (remainingUnits > 1 && !amountSpecified) {
+      this.conversationSession = {
+        flow: 'consume',
+        step: 'awaiting_amount',
+        slots: {
+          itemId: match.id,
+          itemName: match.name,
+          remainingUnits: remainingUnits,
+          totalUnits: totalUnits,
+          unitName: unitName,
+          consumeDate: consumeDate,
+          location: match.location
+        },
+        expiresAt: Date.now() + 60000
+      };
+
+      const chips = [
+        `1 ${unitName}`,
+        `2 ${unitName}`,
+        Math.min(4, remainingUnits) + ` ${unitName}`,
+        'Todo lo que queda'
+      ];
+
+      return {
+        spokenResponse: `¿Cuántas unidades has consumido de ${match.name}? Actualmente quedan ${remainingUnits} disponibles.`,
+        actionTaken: false,
+        actionType: 'conversation_prompt',
+        inConversationFlow: true,
+        expectedInput: 'amount',
+        suggestionChips: chips,
+        card: {
+          title: `Consumo: ${match.name}`,
+          text: `Quedan ${remainingUnits} ${unitName}.\n¿Cuántas unidades has consumido?`
+        }
+      };
     }
 
     // Si tiene unidades múltiples (> 1) y se especificó una cantidad menor a las restantes:

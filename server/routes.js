@@ -447,6 +447,12 @@ router.post('/assistant/query', async (req, res) => {
           habitId: result.actionData.habitId,
           completed: result.actionData.completed
         });
+      } else if (result.actionType === 'menu_update') {
+        notificationService.broadcastSSE({
+          type: 'menu_updated',
+          day: result.actionData.day,
+          menu: result.actionData.menu
+        });
       } else if (result.actionType === 'calendar_add') {
         notificationService.broadcastSSE({
           type: 'event_created',
@@ -469,6 +475,11 @@ router.post('/assistant/query', async (req, res) => {
       spokenResponse: 'Ha ocurrido un error al procesar tu petición. Por favor, inténtalo de nuevo.'
     });
   }
+});
+
+router.post('/assistant/cancel-flow', (req, res) => {
+  assistantEngine.resetConversation();
+  res.json({ ok: true, message: 'Flujo conversacional cancelado' });
 });
 
 // -------------------------------------------------------------

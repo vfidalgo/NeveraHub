@@ -347,6 +347,7 @@
         const data = await response.json();
 
         if (data.ok) {
+          this.inConversationFlow = !!data.inConversationFlow;
           this.renderAssistantResponse(data, transcript);
           this.speak(data.spokenResponse);
 
@@ -359,10 +360,12 @@
             }
           }
         } else {
+          this.inConversationFlow = false;
           this.updateHudState('error', data.spokenResponse || 'Ha ocurrido un error.', `"${transcript}"`);
           this.speak(data.spokenResponse || 'Ha ocurrido un error');
         }
       } catch (err) {
+        this.inConversationFlow = false;
         console.error('Error al consultar el asistente:', err);
         const errMsg = 'No he podido conectar con el servicio del asistente.';
         this.updateHudState('error', errMsg, `"${transcript}"`);
@@ -379,14 +382,33 @@
       const onSpeakingFinished = () => {
         this.isSpeaking = false;
         this.setWaveAnimation(false);
-        // Si la ventana de 2 minutos sigue activa, reanudar escucha de inmediato
-        if (Date.now() < this.activeUntil && !this.isListening) {
+
+        if (this.inConversationFlow) {
+          // En diálogo guiado: mantener HUD abierto y reanudar escucha de inmediato
+          this.openHud();
+          this.updateHudState('listening', 'Te escucho... responde ahora', '');
           if (this.restartTimeout) clearTimeout(this.restartTimeout);
           this.restartTimeout = setTimeout(() => {
-            if (Date.now() < this.activeUntil && !this.isSpeaking && !this.isListening) {
-              this.startListening();
+            if (!this.isSpeaking) {
+              this.startListening(true);
             }
-          }, 350);
+          }, 300);
+        } else {
+          // Si la ventana de 2 minutos sigue activa, reanudar escucha en segundo plano
+          if (Date.now() < this.activeUntil && !this.isListening) {
+            if (this.restartTimeout) clearTimeout(this.restartTimeout);
+            this.restartTimeout = setTimeout(() => {
+              if (Date.now() < this.activeUntil && !this.isSpeaking && !this.isListening) {
+                this.startListening(false);
+              }
+            }, 350);
+          }
+          // Y programar autocierre del HUD
+          setTimeout(() => {
+            if (!this.inConversationFlow && !this.isSpeaking) {
+              this.closeHud(false);
+            }
+          }, 3500);
         }
       };
 
@@ -452,8 +474,10 @@
 
     closeHud(explicit = true) {
       if (explicit) {
+        this.inConversationFlow = false;
         this.stopListening(true);
         this.stopSpeaking();
+        fetch('/api/assistant/cancel-flow', { method: 'POST' }).catch(() => {});
       } else {
         this.stopListening(false);
         this.stopSpeaking();
@@ -496,14 +520,35 @@
 
       if (responseCardEl) {
         const card = data.card || {};
+        let chipsHtml = '';
+        if (Array.isArray(data.suggestionChips) && data.suggestionChips.length > 0) {
+          chipsHtml = `
+            <div class="voice-suggestion-chips">
+              ${data.suggestionChips.map(chip => `<button type="button" class="voice-chip-btn" data-chip="${chip}">${chip}</button>`).join('')}
+            </div>
+          `;
+        }
+
         responseCardEl.innerHTML = `
           <div class="voice-response-bubble">
             <div class="voice-response-title">${card.title || 'NeveraBot'}</div>
             <div class="voice-response-text">${(card.text || data.spokenResponse || '').replace(/\n/g, '<br>')}</div>
+            ${chipsHtml}
             ${data.actionTaken ? '<div class="voice-action-badge">✅ Acción realizada en la nevera</div>' : ''}
           </div>
         `;
         responseCardEl.style.display = 'block';
+
+        const chipBtns = responseCardEl.querySelectorAll('.voice-chip-btn');
+        chipBtns.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const chipText = btn.getAttribute('data-chip');
+            if (chipText) {
+              this.sendManualQuery(chipText);
+            }
+          });
+        });
       }
     },
 

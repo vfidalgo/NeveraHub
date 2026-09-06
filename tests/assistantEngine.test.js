@@ -190,3 +190,101 @@ test('Asistente Virtual: Actualización de Menú Infantil y Cenas por Voz', () =
     db.saveData();
   }
 });
+
+test('Asistente Virtual: Flujo Conversacional Multi-Turno para Menús (pregunta día y comida)', () => {
+  const refDate = new Date('2026-09-07T12:00:00Z'); // Lunes
+  const backupMenus = JSON.parse(JSON.stringify(db.getAll().menus || {}));
+  assistantEngine.resetConversation();
+
+  try {
+    // Turno 1: "Apunta menú para Samuel" -> Pregunta el día
+    const res1 = assistantEngine.processQuery('Apunta menú para Samuel', db, refDate);
+    assert.strictEqual(res1.actionTaken, false);
+    assert.strictEqual(res1.inConversationFlow, true);
+    assert.strictEqual(res1.expectedInput, 'day');
+    assert.ok(res1.spokenResponse.includes('Samuel'));
+    assert.ok(res1.spokenResponse.includes('día'));
+    assert.ok(Array.isArray(res1.suggestionChips));
+    assert.ok(res1.suggestionChips.includes('Martes'));
+
+    // Turno 2: "Para el martes" -> Pregunta el plato
+    const res2 = assistantEngine.processQuery('Para el martes', db, refDate);
+    assert.strictEqual(res2.actionTaken, false);
+    assert.strictEqual(res2.inConversationFlow, true);
+    assert.strictEqual(res2.expectedInput, 'dish');
+    assert.ok(res2.spokenResponse.includes('Samuel'));
+    assert.ok(res2.spokenResponse.includes('martes'));
+
+    // Turno 3: "Puré de calabacín con lenguado" -> Guarda en base de datos y confirma
+    const res3 = assistantEngine.processQuery('Puré de calabacín con lenguado', db, refDate);
+    assert.strictEqual(res3.actionTaken, true);
+    assert.strictEqual(res3.actionType, 'menu_update');
+    assert.strictEqual(res3.inConversationFlow, false);
+    assert.ok(res3.spokenResponse.includes('Puré de calabacín con lenguado'));
+    assert.ok(res3.spokenResponse.includes('Samuel'));
+    assert.ok(res3.spokenResponse.includes('martes'));
+
+    const tuesdayMenu = db.getAll().menus.tuesday;
+    assert.strictEqual(tuesdayMenu.samuelLunch, 'Puré de calabacín con lenguado');
+  } finally {
+    assistantEngine.resetConversation();
+    db.getAll().menus = backupMenus;
+    db.saveData();
+  }
+});
+
+test('Asistente Virtual: Flujo Conversacional Cancelación por el usuario', () => {
+  const refDate = new Date('2026-09-07T12:00:00Z');
+  assistantEngine.resetConversation();
+
+  // Iniciar flujo
+  const res1 = assistantEngine.processQuery('Apunta la cena', db, refDate);
+  assert.strictEqual(res1.inConversationFlow, true);
+  assert.strictEqual(assistantEngine.isConversationActive(), true);
+
+  // Cancelar
+  const resCancel = assistantEngine.processQuery('cancela', db, refDate);
+  assert.strictEqual(resCancel.actionType, 'conversation_cancel');
+  assert.strictEqual(resCancel.inConversationFlow, false);
+  assert.strictEqual(assistantEngine.isConversationActive(), false);
+  assert.ok(resCancel.spokenResponse.includes('cancelado'));
+});
+
+test('Asistente Virtual: Flujo Conversacional para Consumo de Inventario con Unidades Múltiples', () => {
+  const refDate = new Date('2026-09-06T12:00:00Z');
+  assistantEngine.resetConversation();
+
+  const newItem = db.add('inventory', {
+    name: 'Huevos ecológicos multi-test',
+    category: 'dairy',
+    location: 'fridge',
+    quantity: '12 huevos',
+    totalUnits: 12,
+    remainingUnits: 12,
+    unitName: 'huevos',
+    consumedHistory: [],
+    addedDate: '2026-09-04',
+    expiryDate: '2026-09-25'
+  });
+
+  try {
+    // Turno 1: "He consumido huevos ecológicos multi-test" (sin especificar cantidad) -> Pregunta cuántas unidades
+    const res1 = assistantEngine.processQuery('He consumido huevos ecológicos multi-test', db, refDate);
+    assert.strictEqual(res1.actionTaken, false);
+    assert.strictEqual(res1.inConversationFlow, true);
+    assert.strictEqual(res1.expectedInput, 'amount');
+    assert.ok(res1.spokenResponse.includes('unidades'));
+    assert.ok(res1.spokenResponse.includes('12'));
+
+    // Turno 2: "2" -> Descuenta 2 unidades
+    const res2 = assistantEngine.processQuery('2', db, refDate);
+    assert.strictEqual(res2.actionTaken, true);
+    assert.strictEqual(res2.actionType, 'inventory_consume_partial');
+    assert.strictEqual(res2.inConversationFlow, false);
+    assert.ok(res2.spokenResponse.includes('2'));
+    assert.ok(res2.spokenResponse.includes('10')); // quedan 10
+  } finally {
+    assistantEngine.resetConversation();
+    db.remove('inventory', newItem.id);
+  }
+});
