@@ -33,17 +33,22 @@
         this.recognition.interimResults = false;
         this.recognition.maxAlternatives = 1;
 
-        this.recognition.onstart = () => this.onSpeechState('listening');
+        this.recognition.onstart = () => {
+          this.consecutiveErrors = 0;
+          this.onSpeechState('listening');
+        };
+
         this.recognition.onend = () => {
           this.isListening = false;
-          // Si la ventana de 2 minutos sigue activa y no estamos hablando, reanudar escucha
-          if (Date.now() < this.activeUntil && !this.isSpeaking) {
+          this.updateListeningUI(false);
+          // Si la ventana de 2 minutos sigue activa y no estamos hablando ni bloqueados, reanudar escucha de fondo
+          if (!this.permissionBlocked && Date.now() < this.activeUntil && !this.isSpeaking) {
             if (this.restartTimeout) clearTimeout(this.restartTimeout);
             this.restartTimeout = setTimeout(() => {
-              if (Date.now() < this.activeUntil && !this.isSpeaking && !this.isListening) {
-                this.startListening();
+              if (!this.permissionBlocked && Date.now() < this.activeUntil && !this.isSpeaking && !this.isListening) {
+                this.startListening(false);
               }
-            }, 300);
+            }, 350);
           } else if (this.isListening) {
             this.onSpeechState('processing');
           }
@@ -51,15 +56,30 @@
 
         this.recognition.onerror = (e) => {
           console.warn('SpeechRecognition error:', e.error);
-          if (e.error === 'no-speech' && Date.now() < this.activeUntil && !this.isSpeaking) {
-            if (this.restartTimeout) clearTimeout(this.restartTimeout);
-            this.restartTimeout = setTimeout(() => {
-              if (Date.now() < this.activeUntil && !this.isSpeaking && !this.isListening) {
-                this.startListening();
-              }
-            }, 350);
+          if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+            this.permissionBlocked = true;
+            this.isListening = false;
+            this.updateListeningUI(false);
+          } else if (e.error === 'no-speech') {
+            this.consecutiveErrors = 0;
+            if (!this.permissionBlocked && Date.now() < this.activeUntil && !this.isSpeaking) {
+              if (this.restartTimeout) clearTimeout(this.restartTimeout);
+              this.restartTimeout = setTimeout(() => {
+                if (!this.permissionBlocked && Date.now() < this.activeUntil && !this.isSpeaking && !this.isListening) {
+                  this.startListening(false);
+                }
+              }, 400);
+            }
           } else {
-            this.onSpeechState('error');
+            this.consecutiveErrors = (this.consecutiveErrors || 0) + 1;
+            if (this.consecutiveErrors <= 3 && !this.permissionBlocked && Date.now() < this.activeUntil && !this.isSpeaking) {
+              if (this.restartTimeout) clearTimeout(this.restartTimeout);
+              this.restartTimeout = setTimeout(() => {
+                if (!this.permissionBlocked && Date.now() < this.activeUntil && !this.isSpeaking && !this.isListening) {
+                  this.startListening(false);
+                }
+              }, 600);
+            }
           }
         };
 
@@ -71,14 +91,18 @@
     },
 
     bindEvents() {
-      // 1. Botón de micrófono en la cabecera
+      // 1. Botón de micrófono en la cabecera (clic explícito: abre HUD interactivo)
       const btn = document.getElementById('btn-voice-assistant');
       if (btn) {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
           if (this.isListening) {
             this.stopListening(true);
           } else {
+            this.permissionBlocked = false;
+            this.consecutiveErrors = 0;
             this.notifyInteraction('header_mic');
+            this.startListening(true);
           }
         });
       }
@@ -95,16 +119,19 @@
           const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
           if (activeTag !== 'input' && activeTag !== 'textarea') {
             e.preventDefault();
+            this.permissionBlocked = false;
+            this.consecutiveErrors = 0;
             if (this.isListening) {
               this.stopListening(true);
             } else {
               this.notifyInteraction('keyboard_m');
+              this.startListening(true);
             }
           }
         }
       });
 
-      // 4. Interacción en pantalla (toques, clics): Activa o renueva la ventana de 2 minutos de escucha
+      // 4. Interacción en pantalla (toques, clics): Renueva la ventana de 2 minutos sin abrir popups
       let lastTouchThrottle = 0;
       const handleUserInteraction = (e) => {
         if (e.target && (e.target.closest('#btn-close-voice-hud') || e.target.closest('.voice-hud-close'))) {
@@ -129,13 +156,13 @@
     notifyInteraction(source = 'interaction') {
       const now = Date.now();
       this.activeUntil = now + 120000; // 120 segundos
-      console.log(`🎙️ Sesión de audio activa (${source}) hasta:`, new Date(this.activeUntil).toLocaleTimeString());
 
       this.startSessionTimer();
       this.updateSessionBadge(true);
 
-      if (!this.isSpeaking && !this.isListening) {
-        this.startListening();
+      // Iniciar escucha en segundo plano (sin abrir HUD que tape la pantalla)
+      if (!this.isSpeaking && !this.isListening && !this.permissionBlocked) {
+        this.startListening(false);
       }
     },
 
@@ -204,11 +231,104 @@
       if (this.isListening) {
         this.stopListening(true);
       } else {
-        this.notifyInteraction('toggle_manual');
+        this.startListening(true);
       }
     },
+
+    startListening(showHud = false) {
+      if (this.isSpeaking) return;
+      if (this.permissionBlocked && !showHud) return;
+
+      this.isListening = true;
+      this.updateListeningUI(true);
+
+      if (showHud) {
+        this.openHud();
+        this.updateHudState('listening', 'Te escucho... habla con naturalidad', '');
+      }
+
+      if (this.hasNativeBridge) {
+        try {
+          window.AndroidBridge.startListening();
+          return;
+        } catch (err) {
+          console.warn('Error al invocar AndroidBridge.startListening:', err);
+        }
+      }
+
+      if (this.recognition) {
+        try {
+          this.recognition.start();
+        } catch (err) {
+          if (err.name !== 'InvalidStateError') {
+            console.warn('SpeechRecognition start error:', err);
+          }
+        }
+      } else if (showHud) {
+        this.updateHudState('error', 'El reconocimiento de voz no está disponible en este navegador.', '');
+      }
+    },
+
+    stopListening(explicitUserAction = false) {
+      this.isListening = false;
+      this.updateListeningUI(false);
+      if (this.restartTimeout) {
+        clearTimeout(this.restartTimeout);
+        this.restartTimeout = null;
+      }
+
+      if (explicitUserAction) {
+        this.activeUntil = 0;
+        if (this.sessionInterval) {
+          clearInterval(this.sessionInterval);
+          this.sessionInterval = null;
+        }
+        this.updateSessionBadge(false);
+      }
+
+      if (this.hasNativeBridge) {
+        try {
+          window.AndroidBridge.stopListening();
+        } catch (err) {}
+      }
+      if (this.recognition) {
+        try {
+          this.recognition.stop();
+        } catch (err) {}
+      }
+    },
+
+    updateListeningUI(listening) {
+      const btn = document.getElementById('btn-voice-assistant');
+      if (btn) {
+        btn.classList.toggle('listening-active', !!listening);
+      }
+    },
+
+    onSpeechState(state) {
+      console.log('🎙️ Estado de voz:', state);
+      if (state === 'listening') {
+        this.isListening = true;
+        this.updateListeningUI(true);
+        this.updateHudState('listening', 'Te escucho... di por ejemplo "Apunta el menú de Guille para el lunes"', '');
+      } else if (state === 'processing') {
+        this.isListening = false;
+        this.updateListeningUI(false);
+        this.updateHudState('processing', 'Pensando...', '');
+      } else if (state === 'idle') {
+        this.isListening = false;
+        this.updateListeningUI(false);
+        this.updateHudState('idle', 'Pulsa el micrófono para hablar', '');
+      } else if (state === 'error') {
+        this.isListening = false;
+        this.updateListeningUI(false);
+        this.updateHudState('error', 'No te he entendido bien. Prueba de nuevo.', '');
+      }
+    },
+
     async onSpeechResult(transcript) {
       this.isListening = false;
+      this.openHud(); // Mostrar HUD para ver qué se ha reconocido y la respuesta
       this.updateHudState('processing', 'Consultando con la nevera...', `"${transcript}"`);
 
       // Renovar ventana de 2 minutos tras recibir orden de voz

@@ -465,12 +465,6 @@ const NeveraApp = {
 
       const locIcon = item.location === 'fridge' ? '🧊 Nevera' : (item.location === 'pantry' ? '🥫 Despensa' : '❄️ Congelador');
 
-      return `
-        <div class="item-card status-${item.status}">
-          <div class="item-top">
-            <div class="item-name">${item.name}</div>
-            <div class="item-badge ${badgeClass}">${badgeText}</div>
-          </div>
       const totalUnits = typeof item.totalUnits === 'number' ? item.totalUnits : (this.parseUnits(item.quantity).totalUnits || 1);
       const remainingUnits = typeof item.remainingUnits === 'number' ? item.remainingUnits : (this.parseUnits(item.quantity).remainingUnits || 1);
       const unitName = item.unitName || this.parseUnits(item.quantity).unitName || 'uds';
