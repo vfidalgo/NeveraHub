@@ -22,10 +22,21 @@ test('Asistente Virtual: Consulta de Menús (Comida y Cena)', () => {
   assert.strictEqual(resCena.actionType, 'menu');
   assert.ok(resCena.spokenResponse.toLowerCase().includes('pechuga de pollo') || resCena.spokenResponse.toLowerCase().includes('cena'));
 
-  // Consulta menú infantil
+  // Consulta menú infantil general
   const resNinos = assistantEngine.processQuery('¿Qué comen los niños en el colegio?', db, refDate);
   assert.strictEqual(resNinos.actionType, 'menu');
-  assert.ok(resNinos.spokenResponse.toLowerCase().includes('lentejas') || resNinos.spokenResponse.toLowerCase().includes('niños'));
+  assert.ok(resNinos.spokenResponse.toLowerCase().includes('lentejas') || resNinos.spokenResponse.toLowerCase().includes('guille'));
+
+  // Consulta menú individual de Guille y Samuel
+  const resGuille = assistantEngine.processQuery('¿Qué come Guille hoy?', db, refDate);
+  assert.strictEqual(resGuille.actionType, 'menu');
+  assert.ok(resGuille.spokenResponse.includes('Guille'));
+  assert.ok(resGuille.spokenResponse.includes('Lentejas'));
+
+  const resSamuel = assistantEngine.processQuery('¿Qué come Samuel hoy?', db, refDate);
+  assert.strictEqual(resSamuel.actionType, 'menu');
+  assert.ok(resSamuel.spokenResponse.includes('Samuel'));
+  assert.ok(resSamuel.spokenResponse.includes('Puré') || resSamuel.spokenResponse.includes('calabaza') || resSamuel.spokenResponse.includes('lentejas'));
 });
 
 test('Asistente Virtual: Recomendación de Recetas Anti-Desperdicio', () => {

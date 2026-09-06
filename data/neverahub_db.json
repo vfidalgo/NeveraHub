@@ -52,6 +52,24 @@
       "id": "e_1788688975501_886"
     },
     {
+      "title": "Depilarte el Chichi",
+      "memberId": "m2",
+      "date": "2026-09-06",
+      "startTime": "17:00",
+      "endTime": "18:00",
+      "notes": "",
+      "id": "e_1788701355397_586"
+    },
+    {
+      "title": "Pediatra para samu",
+      "memberId": "all",
+      "date": "2026-09-07",
+      "startTime": "11:30",
+      "endTime": "",
+      "notes": "Añadido por voz con NeveraBot",
+      "id": "e_1788701382672_321"
+    },
+    {
       "id": "e1",
       "title": "Fútbol iniciación Guille",
       "memberId": "m3",
@@ -86,24 +104,6 @@
       "startTime": "20:30",
       "endTime": "23:00",
       "notes": "Restaurante El Rincón"
-    },
-    {
-      "title": "Depilarte el Chichi",
-      "memberId": "m2",
-      "date": "2026-09-06",
-      "startTime": "17:00",
-      "endTime": "18:00",
-      "notes": "",
-      "id": "e_1788701355397_586"
-    },
-    {
-      "title": "Pediatra para samu",
-      "memberId": "all",
-      "date": "2026-09-07",
-      "startTime": "11:30",
-      "endTime": "",
-      "notes": "Añadido por voz con NeveraBot",
-      "id": "e_1788701382672_321"
     }
   ],
   "habits": [
@@ -212,16 +212,6 @@
   },
   "inventory": [
     {
-      "id": "i4",
-      "name": "Huevos de campo",
-      "category": "dairy",
-      "location": "fridge",
-      "quantity": "8 uds",
-      "addedDate": "2026-09-03",
-      "expiryDate": "2026-09-18",
-      "urgent": false
-    },
-    {
       "id": "i6",
       "name": "Arroz bomba",
       "category": "pantry",
@@ -275,42 +265,56 @@
   "menus": {
     "monday": {
       "name": "Lunes",
-      "kidsLunch": "Lentejas con verduras y compota de manzana",
+      "guilleLunch": "Lentejas con verduras y compota de manzana",
+      "samuelLunch": "Puré suave de lentejas con calabaza y pera",
+      "kidsLunch": "Guille: Lentejas con verduras | Samuel: Puré suave",
       "parentsLunch": "Ensalada de pasta fría con atún y tomate",
       "dinner": "Pechuga de pollo a la plancha con calabacín salteado"
     },
     "tuesday": {
       "name": "Martes",
-      "kidsLunch": "Macarrones boloñesa y plátano",
+      "guilleLunch": "Macarrones boloñesa y plátano",
+      "samuelLunch": "Sopa de estrellitas con pollo desmigado y plátano",
+      "kidsLunch": "Guille: Macarrones boloñesa | Samuel: Sopa estrellitas",
       "parentsLunch": "Lentejas sobrantes del lunes",
       "dinner": "Tortilla francesa con ensalada de tomate y mozzarella"
     },
     "wednesday": {
       "name": "Miércoles",
-      "kidsLunch": "Merluza al vapor con patatas panadera y pera",
+      "guilleLunch": "Merluza al vapor con patatas panadera y pera",
+      "samuelLunch": "Crema suave de calabacín con merluza desmigada",
+      "kidsLunch": "Guille: Merluza al vapor | Samuel: Crema de calabacín",
       "parentsLunch": "Pechuga de pavo con verduras al vapor",
       "dinner": "Crema de calabacín casera y huevo poché"
     },
     "thursday": {
       "name": "Jueves",
-      "kidsLunch": "Pollo asado al horno con ensalada y yogur",
+      "guilleLunch": "Pollo asado al horno con patatas y yogur",
+      "samuelLunch": "Pollo deshilachado con zanahoria al vapor y yogur",
+      "kidsLunch": "Guille: Pollo asado con patatas | Samuel: Pollo tierno",
       "parentsLunch": "Arroz salteado con verduras y pollo",
       "dinner": "Sopa de fideos con verduras y taquitos de jamón"
     },
     "friday": {
       "name": "Viernes",
-      "kidsLunch": "Arroz a la cubana con huevo frito y naranja",
+      "guilleLunch": "Arroz a la cubana con huevo frito y naranja",
+      "samuelLunch": "Arrocito meloso con tomate casero, huevo revuelto y compota",
+      "kidsLunch": "Guille: Arroz a la cubana | Samuel: Arrocito meloso",
       "parentsLunch": "Menú del día con compañeros de trabajo",
       "dinner": "Noche de Pizza casera familiar y peli"
     },
     "saturday": {
       "name": "Sábado",
-      "kidsLunch": "Comida familiar: Arroz caldoso o paella",
+      "guilleLunch": "Comida familiar: Arroz caldoso o paella",
+      "samuelLunch": "Comida familiar: Arroz tierno con verduritas y pollo",
+      "kidsLunch": "Guille: Arroz caldoso | Samuel: Arroz con verduritas",
       "parentsLunch": "Comida familiar: Arroz caldoso o paella",
       "dinner": "Hamburguesas caseras completas"
     },
     "sunday": {
       "name": "Domingo",
+      "guilleLunch": "Guiso tradicional en casa de los abuelos",
+      "samuelLunch": "Guiso suave adaptado en casa de los abuelos",
       "kidsLunch": "Guiso tradicional en casa de los abuelos",
       "parentsLunch": "Guiso tradicional en casa de los abuelos",
       "dinner": "Cena ligera: Sándwiches calientes y fruta"
@@ -355,6 +359,38 @@
       "date": "2026-09-06T13:31:36.224Z",
       "imageFile": "capture_1788701496224_235.jpg",
       "imageUrl": "/api/security/captures/capture_1788701496224_235.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788702782665_743",
+      "date": "2026-09-06T13:53:02.665Z",
+      "imageFile": "capture_1788702782664_796.jpg",
+      "imageUrl": "/api/security/captures/capture_1788702782664_796.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788702782913_266",
+      "date": "2026-09-06T13:53:02.913Z",
+      "imageFile": "capture_1788702782913_801.jpg",
+      "imageUrl": "/api/security/captures/capture_1788702782913_801.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788702872707_683",
+      "date": "2026-09-06T13:54:32.707Z",
+      "imageFile": "capture_1788702872706_764.jpg",
+      "imageUrl": "/api/security/captures/capture_1788702872706_764.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788702872962_799",
+      "date": "2026-09-06T13:54:32.962Z",
+      "imageFile": "capture_1788702872962_416.jpg",
+      "imageUrl": "/api/security/captures/capture_1788702872962_416.jpg",
       "status": "unresolved",
       "notes": "Persona no identificada detectada interactuando con la nevera"
     }

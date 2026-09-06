@@ -58,7 +58,7 @@ class AssistantEngine {
     }
 
     // 2. Consulta de Menús
-    if (clean.includes('menú') || clean.includes('menu') || clean.includes('comer') || clean.includes('comen') || clean.includes('cenar') || clean.includes('cenan') || clean.includes('comida') || clean.includes('cena') || clean.includes('almuerzo')) {
+    if (clean.includes('menú') || clean.includes('menu') || clean.includes('comer') || clean.includes('comen') || clean.includes('come') || clean.includes('cenar') || clean.includes('cenan') || clean.includes('comida') || clean.includes('cena') || clean.includes('almuerzo')) {
       if (clean.includes('receta') || clean.includes('recomiendas') || clean.includes('puedo cocinar')) {
         return this.handleRecipeRecommendation(db, refDate);
       }
@@ -111,12 +111,12 @@ class AssistantEngine {
 
     // 11. Respuesta de cortesía o ayuda
     return {
-      spokenResponse: 'Te he escuchado, pero no estoy seguro de qué acción realizar. Puedes preguntarme por el menú de hoy, qué alimentos van a caducar, o decirme por ejemplo "Añade leche a la nevera" o "Lucas se ha lavado los dientes".',
+      spokenResponse: 'Te he escuchado, pero no estoy seguro de qué acción realizar. Puedes preguntarme por el menú de hoy, qué alimentos van a caducar, o decirme por ejemplo "Añade leche a la nevera" o "Guille se ha lavado los dientes".',
       actionTaken: false,
       actionType: 'help',
       card: {
         title: 'Comandos Sugeridos',
-        text: '• "¿Qué hay hoy de comer o cenar?"\n• "¿Qué alimentos caducan pronto?"\n• "Añade tomates a la nevera"\n• "Lucas se ha lavado los dientes"\n• "¿Qué planes hay hoy?"'
+        text: '• "¿Qué hay hoy de comer o cenar?"\n• "¿Qué alimentos caducan pronto?"\n• "Añade tomates a la nevera"\n• "Guille se ha lavado los dientes"\n• "¿Qué planes hay hoy?"'
       }
     };
   }
@@ -196,14 +196,29 @@ class AssistantEngine {
     const prefix = isTomorrow ? 'Mañana' : (targetDay === currentDate.getDay() ? 'Hoy' : 'El ' + dayName);
     let spoken = '';
 
+    const guilleMeal = dayMenu.guilleLunch || dayMenu.kidsLunch || 'Sin planificar';
+    const samuelMeal = dayMenu.samuelLunch || dayMenu.kidsLunch || 'Sin planificar';
+
     if (query.includes('cena') || query.includes('cenar')) {
       spoken = prefix + ' para cenar toca: ' + dayMenu.dinner + '.';
-    } else if (query.includes('niño') || query.includes('nino') || query.includes('colegio') || query.includes('escolar')) {
-      spoken = prefix + ' en el colegio los niños comen: ' + dayMenu.kidsLunch + '.';
+    } else if (query.includes('guille')) {
+      spoken = prefix + ' Guille come en el colegio: ' + guilleMeal + '.';
+    } else if (query.includes('samuel') || query.includes('samu')) {
+      spoken = prefix + ' Samuel come en la guardería: ' + samuelMeal + '.';
+    } else if (query.includes('niño') || query.includes('nino') || query.includes('colegio') || query.includes('escolar') || query.includes('guarderia') || query.includes('guardería')) {
+      if (dayMenu.guilleLunch && dayMenu.samuelLunch) {
+        spoken = prefix + ': Guille come en el colegio ' + dayMenu.guilleLunch + ', y Samuel come en la guardería ' + dayMenu.samuelLunch + '.';
+      } else {
+        spoken = prefix + ' en el colegio los niños comen: ' + (dayMenu.kidsLunch || guilleMeal) + '.';
+      }
     } else if (query.includes('papá') || query.includes('papa') || query.includes('padres') || query.includes('trabajo')) {
       spoken = prefix + ' los padres comen: ' + dayMenu.parentsLunch + '.';
     } else {
-      spoken = prefix + ': En el cole hay ' + dayMenu.kidsLunch + ', los papás comen ' + dayMenu.parentsLunch + ', y para cenar en familia toca ' + dayMenu.dinner + '.';
+      if (dayMenu.guilleLunch && dayMenu.samuelLunch) {
+        spoken = prefix + ': Guille tiene ' + dayMenu.guilleLunch + ', Samuel ' + dayMenu.samuelLunch + ', los papás ' + dayMenu.parentsLunch + ', y para cenar en familia toca ' + dayMenu.dinner + '.';
+      } else {
+        spoken = prefix + ': En el cole hay ' + dayMenu.kidsLunch + ', los papás comen ' + dayMenu.parentsLunch + ', y para cenar en familia toca ' + dayMenu.dinner + '.';
+      }
     }
 
     return {
@@ -212,7 +227,7 @@ class AssistantEngine {
       actionType: 'menu',
       card: {
         title: 'Menú de ' + dayName,
-        text: '👦 Menú escolar: ' + dayMenu.kidsLunch + '\n💼 Menú padres: ' + dayMenu.parentsLunch + '\n🌙 Cena familiar: ' + dayMenu.dinner
+        text: '👦 Menú Guille: ' + guilleMeal + '\n👶 Menú Samuel: ' + samuelMeal + '\n💼 Menú padres: ' + dayMenu.parentsLunch + '\n🌙 Cena familiar: ' + dayMenu.dinner
       }
     };
   }

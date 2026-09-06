@@ -61,6 +61,8 @@ test('API REST: /api/menus permite consultar el menú semanal de la familia', as
   assert.strictEqual(res.status, 200);
   const menus = await res.json();
   assert.ok(menus.monday);
+  assert.ok(menus.monday.guilleLunch);
+  assert.ok(menus.monday.samuelLunch);
   assert.ok(menus.monday.kidsLunch);
   assert.ok(menus.monday.parentsLunch);
   assert.ok(menus.monday.dinner);

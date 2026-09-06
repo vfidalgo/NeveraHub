@@ -50,42 +50,56 @@ const INITIAL_DATA = {
   menus: {
     monday: {
       name: 'Lunes',
-      kidsLunch: 'Lentejas con verduras y compota de manzana',
+      guilleLunch: 'Lentejas con verduras y compota de manzana',
+      samuelLunch: 'Puré suave de lentejas con calabaza y pera',
+      kidsLunch: 'Guille: Lentejas con verduras | Samuel: Puré suave',
       parentsLunch: 'Ensalada de pasta fría con atún y tomate',
       dinner: 'Pechuga de pollo a la plancha con calabacín salteado'
     },
     tuesday: {
       name: 'Martes',
-      kidsLunch: 'Macarrones boloñesa y plátano',
+      guilleLunch: 'Macarrones boloñesa y plátano',
+      samuelLunch: 'Sopa de estrellitas con pollo desmigado y plátano',
+      kidsLunch: 'Guille: Macarrones boloñesa | Samuel: Sopa estrellitas',
       parentsLunch: 'Lentejas sobrantes del lunes',
       dinner: 'Tortilla francesa con ensalada de tomate y mozzarella'
     },
     wednesday: {
       name: 'Miércoles',
-      kidsLunch: 'Merluza al vapor con patatas panadera y pera',
+      guilleLunch: 'Merluza al vapor con patatas panadera y pera',
+      samuelLunch: 'Crema suave de calabacín con merluza desmigada',
+      kidsLunch: 'Guille: Merluza al vapor | Samuel: Crema de calabacín',
       parentsLunch: 'Pechuga de pavo con verduras al vapor',
       dinner: 'Crema de calabacín casera y huevo poché'
     },
     thursday: {
       name: 'Jueves',
-      kidsLunch: 'Pollo asado al horno con ensalada y yogur',
+      guilleLunch: 'Pollo asado al horno con patatas y yogur',
+      samuelLunch: 'Pollo deshilachado con zanahoria al vapor y yogur',
+      kidsLunch: 'Guille: Pollo asado con patatas | Samuel: Pollo tierno',
       parentsLunch: 'Arroz salteado con verduras y pollo',
       dinner: 'Sopa de fideos con verduras y taquitos de jamón'
     },
     friday: {
       name: 'Viernes',
-      kidsLunch: 'Arroz a la cubana con huevo frito y naranja',
+      guilleLunch: 'Arroz a la cubana con huevo frito y naranja',
+      samuelLunch: 'Arrocito meloso con tomate casero, huevo revuelto y compota',
+      kidsLunch: 'Guille: Arroz a la cubana | Samuel: Arrocito meloso',
       parentsLunch: 'Menú del día con compañeros de trabajo',
       dinner: 'Noche de Pizza casera familiar y peli'
     },
     saturday: {
       name: 'Sábado',
-      kidsLunch: 'Comida familiar: Arroz caldoso o paella',
+      guilleLunch: 'Comida familiar: Arroz caldoso o paella',
+      samuelLunch: 'Comida familiar: Arroz tierno con verduritas y pollo',
+      kidsLunch: 'Guille: Arroz caldoso | Samuel: Arroz con verduritas',
       parentsLunch: 'Comida familiar: Arroz caldoso o paella',
       dinner: 'Hamburguesas caseras completas'
     },
     sunday: {
       name: 'Domingo',
+      guilleLunch: 'Guiso tradicional en casa de los abuelos',
+      samuelLunch: 'Guiso suave adaptado en casa de los abuelos',
       kidsLunch: 'Guiso tradicional en casa de los abuelos',
       parentsLunch: 'Guiso tradicional en casa de los abuelos',
       dinner: 'Cena ligera: Sándwiches calientes y fruta'

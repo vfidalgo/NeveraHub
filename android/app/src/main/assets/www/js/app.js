@@ -219,8 +219,12 @@ const NeveraApp = {
           </div>
           <div style="flex:1 1 0; min-height:0; overflow-y:auto; margin-bottom:10px;">
             <div class="today-meal-box kids">
-              <div class="meal-label">🏫 Menú Escolar (Niños)</div>
-              <div class="meal-name">${todayMenu.kidsLunch || 'Sin definir'}</div>
+              <div class="meal-label">👦 Menú Guille (Colegio)</div>
+              <div class="meal-name">${todayMenu.guilleLunch || todayMenu.kidsLunch || 'Sin definir'}</div>
+            </div>
+            <div class="today-meal-box samuel" style="margin-top: 6px;">
+              <div class="meal-label">👶 Menú Samuel (Guardería)</div>
+              <div class="meal-name">${todayMenu.samuelLunch || 'Sin definir'}</div>
             </div>
             <div class="today-meal-box">
               <div class="meal-label">💼 Comida Papás</div>
@@ -575,21 +579,27 @@ const NeveraApp = {
     ];
 
     tableBody.innerHTML = dayKeys.map(d => {
-      const data = this.cachedMenus[d.key] || { kidsLunch: '', parentsLunch: '', dinner: '' };
+      const data = this.cachedMenus[d.key] || { guilleLunch: '', samuelLunch: '', kidsLunch: '', parentsLunch: '', dinner: '' };
       return `
         <tr>
-          <td style="font-weight:700; width:120px; font-size:1.1rem;">${d.name}</td>
+          <td style="font-weight:700; width:110px; font-size:1.05rem;">${d.name}</td>
           <td>
-            <div class="menu-slot-title">🏫 Niños (Colegio)</div>
-            <textarea class="menu-input-area" id="menu-${d.key}-kids" onchange="NeveraApp.saveMenuField('${d.key}', 'kidsLunch', this.value)">${data.kidsLunch || ''}</textarea>
+            <div class="menu-kid-subslot">
+              <div class="menu-subslot-badge guille">👦 Guille (5 años)</div>
+              <textarea class="menu-input-area" id="menu-${d.key}-guille" placeholder="Comida colegio Guille..." onchange="NeveraApp.saveMenuField('${d.key}', 'guilleLunch', this.value)">${data.guilleLunch || (data.kidsLunch || '')}</textarea>
+            </div>
+            <div class="menu-kid-subslot" style="margin-top: 8px;">
+              <div class="menu-subslot-badge samuel">👶 Samuel (2 años)</div>
+              <textarea class="menu-input-area" id="menu-${d.key}-samuel" placeholder="Comida guardería Samuel..." onchange="NeveraApp.saveMenuField('${d.key}', 'samuelLunch', this.value)">${data.samuelLunch || ''}</textarea>
+            </div>
           </td>
           <td>
             <div class="menu-slot-title">💼 Papás (Trabajo / Casa)</div>
-            <textarea class="menu-input-area" id="menu-${d.key}-parents" onchange="NeveraApp.saveMenuField('${d.key}', 'parentsLunch', this.value)">${data.parentsLunch || ''}</textarea>
+            <textarea class="menu-input-area" style="min-height: 104px;" id="menu-${d.key}-parents" onchange="NeveraApp.saveMenuField('${d.key}', 'parentsLunch', this.value)">${data.parentsLunch || ''}</textarea>
           </td>
           <td>
             <div class="menu-slot-title">🌙 Cena Familiar</div>
-            <textarea class="menu-input-area" id="menu-${d.key}-dinner" onchange="NeveraApp.saveMenuField('${d.key}', 'dinner', this.value)">${data.dinner || ''}</textarea>
+            <textarea class="menu-input-area" style="min-height: 104px;" id="menu-${d.key}-dinner" onchange="NeveraApp.saveMenuField('${d.key}', 'dinner', this.value)">${data.dinner || ''}</textarea>
           </td>
         </tr>
       `;
@@ -601,6 +611,11 @@ const NeveraApp = {
       this.cachedMenus[dayKey] = {};
     }
     this.cachedMenus[dayKey][field] = value;
+    if (field === 'guilleLunch' || field === 'samuelLunch') {
+      const g = this.cachedMenus[dayKey].guilleLunch || '';
+      const s = this.cachedMenus[dayKey].samuelLunch || '';
+      this.cachedMenus[dayKey].kidsLunch = (g && s) ? `Guille: ${g} | Samuel: ${s}` : (g || s);
+    }
     await NeveraSync.saveMenus(this.cachedMenus);
   },
 
