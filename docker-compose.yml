@@ -10,5 +10,8 @@ services:
     environment:
       - PORT=3030
       - NODE_ENV=production
+    env_file:
+      - path: .env
+        required: false
     volumes:
       - ./data:/app/data

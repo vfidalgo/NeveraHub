@@ -1,7 +1,17 @@
-const express = require('express');
-const cors = require('cors');
+const fs = require('fs');
 const path = require('path');
 const os = require('os');
+
+// Cargar automáticamente variables de entorno desde .env si existe (Node 20+)
+const envFile = path.join(__dirname, '..', '.env');
+if (fs.existsSync(envFile) && typeof process.loadEnvFile === 'function') {
+  try {
+    process.loadEnvFile(envFile);
+  } catch (e) {}
+}
+
+const express = require('express');
+const cors = require('cors');
 const apiRoutes = require('./routes');
 
 const app = express();

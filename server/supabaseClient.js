@@ -1,4 +1,16 @@
 const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
+const path = require('path');
+
+// Cargar variables de entorno si aún no están cargadas
+if (!process.env.SUPABASE_URL) {
+  const envPath = path.join(__dirname, '..', '.env');
+  if (fs.existsSync(envPath) && typeof process.loadEnvFile === 'function') {
+    try {
+      process.loadEnvFile(envPath);
+    } catch (e) {}
+  }
+}
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || '';
