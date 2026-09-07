@@ -609,6 +609,14 @@
       "imageUrl": "/api/security/captures/capture_1788708848115_993.jpg",
       "status": "unresolved",
       "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788785392991_892",
+      "date": "2026-09-07T12:49:52.991Z",
+      "imageFile": "capture_1788785392990_871.jpg",
+      "imageUrl": "/api/security/captures/capture_1788785392990_871.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
     }
   ]
 }
