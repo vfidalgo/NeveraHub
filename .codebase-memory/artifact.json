@@ -1,11 +1,11 @@
 {
     "schema_version": 2,
-    "commit": "917268f8835e02abc168f07a2a18b12eeaa53483",
-    "indexed_at": "2026-09-06T13:48:07Z",
+    "commit": "86113198995313f483086d793519d12765f32c3a",
+    "indexed_at": "2026-09-08T15:26:55Z",
     "project": "NeveraBot",
-    "nodes": 636,
-    "edges": 1244,
-    "original_size": 2621440,
-    "compressed_size": 490850,
-    "compression_level": 9
+    "nodes": 713,
+    "edges": 1420,
+    "original_size": 3342336,
+    "compressed_size": 625602,
+    "compression_level": 3
 }

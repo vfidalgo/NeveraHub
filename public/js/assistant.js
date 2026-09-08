@@ -342,7 +342,8 @@
 
       try {
         const authH = (window.NeveraSync && window.NeveraSync.getAuthHeaders) ? window.NeveraSync.getAuthHeaders() : {};
-        const response = await fetch('/api/assistant/query', {
+        const url = window.getNeveraApiUrl ? window.getNeveraApiUrl('/api/assistant/query') : '/api/assistant/query';
+        const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authH },
           body: JSON.stringify({
@@ -351,9 +352,20 @@
           })
         });
 
+        if (response.status === 401) {
+          if (window.NeveraAuth && typeof window.NeveraAuth.lockUI === 'function') {
+            window.NeveraAuth.clearSession();
+            window.NeveraAuth.lockUI();
+          }
+          const pinMsg = 'Introduce el PIN familiar para usar el asistente.';
+          this.updateHudState('error', pinMsg, `"${transcript}"`);
+          this.speak(pinMsg);
+          return;
+        }
+
         const data = await response.json();
 
-        if (data.ok) {
+        if (data && data.ok) {
           this.inConversationFlow = !!data.inConversationFlow;
           this.renderAssistantResponse(data, transcript);
           this.speak(data.spokenResponse);
@@ -368,13 +380,14 @@
           }
         } else {
           this.inConversationFlow = false;
-          this.updateHudState('error', data.spokenResponse || 'Ha ocurrido un error.', `"${transcript}"`);
-          this.speak(data.spokenResponse || 'Ha ocurrido un error');
+          const msg = (data && data.spokenResponse) || (data && data.error) || 'No he podido procesar la petición.';
+          this.updateHudState('error', msg, `"${transcript}"`);
+          this.speak(msg);
         }
       } catch (err) {
         this.inConversationFlow = false;
         console.error('Error al consultar el asistente:', err);
-        const errMsg = 'No he podido conectar con el servicio del asistente.';
+        const errMsg = 'No he podido conectar con el servidor de NeveraHub.';
         this.updateHudState('error', errMsg, `"${transcript}"`);
         this.speak(errMsg);
       }
@@ -484,7 +497,8 @@
         this.inConversationFlow = false;
         this.stopListening(true);
         this.stopSpeaking();
-        fetch('/api/assistant/cancel-flow', { method: 'POST' }).catch(() => {});
+        const cancelUrl = window.getNeveraApiUrl ? window.getNeveraApiUrl('/api/assistant/cancel-flow') : '/api/assistant/cancel-flow';
+        fetch(cancelUrl, { method: 'POST' }).catch(() => {});
       } else {
         this.stopListening(false);
         this.stopSpeaking();

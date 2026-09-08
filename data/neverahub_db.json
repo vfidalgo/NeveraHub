@@ -673,6 +673,22 @@
       "imageUrl": "/api/security/captures/capture_1788880591195_319.jpg",
       "status": "unresolved",
       "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788881174266_683",
+      "date": "2026-09-08T15:26:14.266Z",
+      "imageFile": "capture_1788881174266_226.jpg",
+      "imageUrl": "/api/security/captures/capture_1788881174266_226.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788881174485_652",
+      "date": "2026-09-08T15:26:14.485Z",
+      "imageFile": "capture_1788881174485_82.jpg",
+      "imageUrl": "/api/security/captures/capture_1788881174485_82.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
     }
   ],
   "authTokens": {

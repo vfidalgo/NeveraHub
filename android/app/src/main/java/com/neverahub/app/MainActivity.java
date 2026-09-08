@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean isTtsReady = false;
     private static final String PREFS_NAME = "NeveraHubPrefs";
     private static final String KEY_SERVER_URL = "server_url";
+    private static final String DEFAULT_SERVER_URL = "https://nevera-hub.vercel.app";
     private static final String DEFAULT_ASSET_URL = "file:///android_asset/www/index.html";
 
 
@@ -266,6 +267,21 @@ public class MainActivity extends AppCompatActivity {
             return getPackageManager().hasSystemFeature(android.content.pm.PackageManager.FEATURE_CAMERA_FRONT)
                 || getPackageManager().hasSystemFeature(android.content.pm.PackageManager.FEATURE_CAMERA);
         }
+
+        @android.webkit.JavascriptInterface
+        public String getServerUrl() {
+            return getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_SERVER_URL, DEFAULT_SERVER_URL);
+        }
+
+        @android.webkit.JavascriptInterface
+        public void setServerUrl(String url) {
+            if (url != null && !url.trim().isEmpty()) {
+                getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit().putString(KEY_SERVER_URL, url.trim()).apply();
+                runOnUiThread(() -> loadDashboard());
+            }
+        }
     }
 
     private void notifyPhotoCaptured(String base64) {
@@ -342,7 +358,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadDashboard() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String serverUrl = prefs.getString(KEY_SERVER_URL, null);
+        String serverUrl = prefs.getString(KEY_SERVER_URL, DEFAULT_SERVER_URL);
 
         if (serverUrl != null && !serverUrl.trim().isEmpty()) {
             mWebView.loadUrl(serverUrl);

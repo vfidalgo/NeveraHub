@@ -22,7 +22,8 @@ const NeveraNotify = {
   initSSE() {
     if (!window.EventSource) return;
     try {
-      this.eventSource = new EventSource('/api/notifications/stream');
+      const streamUrl = window.getNeveraApiUrl ? window.getNeveraApiUrl('/api/notifications/stream') : '/api/notifications/stream';
+      this.eventSource = new EventSource(streamUrl);
       this.eventSource.addEventListener('notification', (e) => {
         try {
           const data = JSON.parse(e.data);
@@ -76,7 +77,8 @@ const NeveraNotify = {
 
   async sendTestNotification() {
     try {
-      const res = await fetch('/api/notifications/test', {
+      const testUrl = window.getNeveraApiUrl ? window.getNeveraApiUrl('/api/notifications/test') : '/api/notifications/test';
+      const res = await fetch(testUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

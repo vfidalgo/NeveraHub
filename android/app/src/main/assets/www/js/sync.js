@@ -1,12 +1,24 @@
 /**
  * Capa de Sincronización y Persistencia Híbrida (Offline-First)
  * Permite que NeveraHub funcione tanto conectado a su servidor local como 100% offline
- * dentro del WebView de la tablet Android.
+ * dentro del WebView de la tablet Android o desplegado en Vercel.
  */
+
+window.getNeveraApiUrl = function(path) {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const base = (window.location.protocol === 'file:') ? 'https://nevera-hub.vercel.app/api' : '/api';
+  if (cleanPath.startsWith('/api/')) {
+    return cleanPath.replace('/api', base);
+  }
+  return `${base}${cleanPath}`;
+};
 
 const NeveraSync = {
   isOnline: true,
-  apiBase: '/api',
+
+  getApiBase() {
+    return (window.location.protocol === 'file:') ? 'https://nevera-hub.vercel.app/api' : '/api';
+  },
 
   getAuthHeaders() {
     const token = window.NeveraAuth ? window.NeveraAuth.getToken() : (localStorage.getItem('neverahub_pin_token') || '');
@@ -16,7 +28,7 @@ const NeveraSync = {
   // Detectar si el backend responde
   async checkConnection() {
     try {
-      const res = await fetch(`${this.apiBase}/status`, {
+      const res = await fetch(`${this.getApiBase()}/status`, {
         method: 'GET',
         headers: { 'Accept': 'application/json', ...this.getAuthHeaders() }
       });
@@ -29,7 +41,7 @@ const NeveraSync = {
   },
 
   async request(endpoint, options = {}) {
-    const url = `${this.apiBase}${endpoint}`;
+    const url = `${this.getApiBase()}${endpoint}`;
     try {
       const response = await fetch(url, {
         headers: {

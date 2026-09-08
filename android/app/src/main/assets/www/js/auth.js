@@ -19,8 +19,13 @@ const NeveraAuth = {
 
   hasToken() {
     const token = this.getToken();
-    const expires = parseInt(localStorage.getItem(this.EXPIRES_KEY) || sessionStorage.getItem(this.EXPIRES_KEY) || '0', 10);
     if (!token) return false;
+    // Si el token es de versión antigua sin firma HMAC (sin puntos), forzar renovación
+    if (!token.includes('.')) {
+      this.clearSession();
+      return false;
+    }
+    const expires = parseInt(localStorage.getItem(this.EXPIRES_KEY) || sessionStorage.getItem(this.EXPIRES_KEY) || '0', 10);
     if (expires && expires < Date.now()) {
       this.clearSession();
       return false;
@@ -31,13 +36,16 @@ const NeveraAuth = {
   async checkSession() {
     if (this.hasToken()) {
       try {
-        const res = await fetch('/api/auth/check', {
+        const url = window.getNeveraApiUrl ? window.getNeveraApiUrl('/api/auth/check') : '/api/auth/check';
+        const res = await fetch(url, {
           headers: { 'Authorization': `Bearer ${this.getToken()}` }
         });
         const data = await res.json();
         if (data.authenticated) {
           this.unlockUI();
           return true;
+        } else {
+          this.clearSession();
         }
       } catch (e) {
         // En caso de fallo de red o modo offline en la tablet, si hay token local válido, permitir acceso
@@ -140,7 +148,8 @@ const NeveraAuth = {
     if (statusEl) statusEl.textContent = 'Verificando código...';
 
     try {
-      const res = await fetch('/api/auth/verify-pin', {
+      const url = window.getNeveraApiUrl ? window.getNeveraApiUrl('/api/auth/verify-pin') : '/api/auth/verify-pin';
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin })

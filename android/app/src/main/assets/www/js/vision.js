@@ -148,7 +148,8 @@
 
       try {
         const authH = (window.NeveraSync && window.NeveraSync.getAuthHeaders) ? window.NeveraSync.getAuthHeaders() : {};
-        const response = await fetch('/api/vision/identify', {
+        const url = window.getNeveraApiUrl ? window.getNeveraApiUrl('/api/vision/identify') : '/api/vision/identify';
+        const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authH },
           body: JSON.stringify({
@@ -156,6 +157,15 @@
             attemptNumber: attemptNumber
           })
         });
+
+        if (response.status === 401) {
+          if (window.NeveraAuth && typeof window.NeveraAuth.lockUI === 'function') {
+            window.NeveraAuth.clearSession();
+            window.NeveraAuth.lockUI();
+          }
+          this.handleScanFailure(attemptNumber, 'Introduce el PIN familiar para acceder a la cámara.');
+          return;
+        }
 
         const data = await response.json();
 
@@ -391,7 +401,9 @@
         }
         return;
       }
-      fetch('/api/members')
+      const membersUrl = window.getNeveraApiUrl ? window.getNeveraApiUrl('/api/members') : '/api/members';
+      const authH = (window.NeveraSync && window.NeveraSync.getAuthHeaders) ? window.NeveraSync.getAuthHeaders() : {};
+      fetch(membersUrl, { headers: authH })
         .then(r => r.json())
         .then(members => {
           const m = members.find(item => item.id === memberId);
