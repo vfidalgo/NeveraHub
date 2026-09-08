@@ -73,8 +73,8 @@
     // Callback invocado por AndroidBridge en MainActivity.java
     onPhotoCaptured(base64Data) {
       if (!base64Data) {
-        console.warn('📷 Captura de foto vacía o cancelada.');
-        this.handleScanFailure(this.currentAttempt, 'No se pudo acceder a la cámara frontal.');
+        console.warn('📷 Captura nativa vacía. Intentando captura WebRTC...');
+        this.captureFromWebRTC();
         return;
       }
       // Mostrar la foto capturada en el recuadro HUD derecho
@@ -138,9 +138,8 @@
 
         this.sendImageForAnalysis(base64Data, this.currentAttempt);
       } catch (err) {
-        console.warn('Cámara WebRTC no disponible, utilizando simulación de presencia:', err.message);
-        // Simulación para pruebas en escritorio
-        this.sendImageForAnalysis('data:image/jpeg;base64,sample_simulation_token_12345', this.currentAttempt);
+        console.warn('Cámara WebRTC no disponible:', err.message);
+        this.handleScanFailure(this.currentAttempt, 'No se pudo acceder a la cámara. Pulsa tu avatar arriba para elegir tu perfil.');
       }
     },
 

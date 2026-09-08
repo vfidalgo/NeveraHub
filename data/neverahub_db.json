@@ -649,6 +649,30 @@
       "imageUrl": "/api/security/captures/capture_1788876018730_602.jpg",
       "status": "unresolved",
       "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788880425638_580",
+      "date": "2026-09-08T15:13:45.638Z",
+      "imageFile": "capture_1788880425638_564.jpg",
+      "imageUrl": "/api/security/captures/capture_1788880425638_564.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788880425822_291",
+      "date": "2026-09-08T15:13:45.822Z",
+      "imageFile": "capture_1788880425821_546.jpg",
+      "imageUrl": "/api/security/captures/capture_1788880425821_546.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788880591196_215",
+      "date": "2026-09-08T15:16:31.196Z",
+      "imageFile": "capture_1788880591195_319.jpg",
+      "imageUrl": "/api/security/captures/capture_1788880591195_319.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
     }
   ],
   "authTokens": {
@@ -667,6 +691,10 @@
     "aeb2d1fc0f29e9030d184f6191fa960fd79158921b5e4bd01acb88daaec5fcca": {
       "expiresAt": 1796651906165,
       "createdAt": 1788875906165
+    },
+    "897c4c730fded203461587efe62feede82d374b48e7b5419fe4244f366e7c9f6": {
+      "expiresAt": 1796652164287,
+      "createdAt": 1788876164288
     }
   }
 }

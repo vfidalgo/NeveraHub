@@ -78,7 +78,8 @@ class NotificationService {
           'Tags': tags.join(','),
           'Content-Type': 'text/plain; charset=utf-8',
           'Content-Length': Buffer.byteLength(message, 'utf8')
-        }
+        },
+        timeout: 3000
       };
 
       const req = https.request(options, (res) => {
@@ -88,6 +89,11 @@ class NotificationService {
       req.on('error', (err) => {
         console.warn('Aviso: No se pudo conectar con servicio push externo (modo offline):', err.message);
         resolve({ ok: false, error: err.message, offline: true });
+      });
+
+      req.on('timeout', () => {
+        req.destroy();
+        resolve({ ok: false, error: 'Timeout ntfy push', offline: true });
       });
 
       req.write(message);

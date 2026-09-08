@@ -322,7 +322,13 @@
       } else if (state === 'error') {
         this.isListening = false;
         this.updateListeningUI(false);
-        this.updateHudState('error', 'No te he entendido bien. Prueba de nuevo.', '');
+        this.updateHudState('error', 'No te he entendido bien. Prueba de nuevo o escribe abajo.', '');
+      } else if (state === 'unsupported') {
+        this.isListening = false;
+        this.updateListeningUI(false);
+        this.updateHudState('idle', 'Dicta con el micro del teclado o escribe tu consulta:', '');
+        const inputEl = document.getElementById('voice-hud-input-text');
+        if (inputEl) setTimeout(() => inputEl.focus(), 200);
       }
     },
 
@@ -565,6 +571,16 @@
     sendManualQuery(queryText) {
       this.openHud();
       this.onSpeechResult(queryText);
+    },
+
+    // Envío desde el campo de texto manual o dictado de teclado
+    submitManualInput() {
+      const inputEl = document.getElementById('voice-hud-input-text');
+      if (!inputEl) return;
+      const text = (inputEl.value || '').trim();
+      if (!text) return;
+      inputEl.value = '';
+      this.sendManualQuery(text);
     }
   };
 

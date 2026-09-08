@@ -5,8 +5,8 @@ const DEFAULT_PIN = '1234';
 const TOKEN_EXPIRY_DAYS = 90;
 const TOKEN_EXPIRY_MS = TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
 
-// Caché de tokens en memoria
-const activeTokens = new Map();
+// Secreto para firmar tokens (persistente por variable o fallback estable)
+const TOKEN_SECRET = process.env.AUTH_SECRET || process.env.FAMILY_PIN || 'neverahub_secret_family_key_2026';
 
 class AuthService {
   getFamilyPin() {
@@ -15,6 +15,19 @@ class AuthService {
 
   isPinSecurityEnabled() {
     return process.env.FAMILY_PIN_DISABLED !== 'true';
+  }
+
+  getSecret() {
+    return `${TOKEN_SECRET}_${this.getFamilyPin()}`;
+  }
+
+  // Genera un token HMAC sin estado (stateless)
+  // Inmune a reinicios de servidor y reciclado de funciones Serverless en Vercel
+  generateToken(expiresAt) {
+    const createdAt = Date.now();
+    const payload = `${expiresAt}.${createdAt}`;
+    const hmac = crypto.createHmac('sha256', this.getSecret()).update(payload).digest('hex');
+    return `${payload}.${hmac}`;
   }
 
   verifyPin(inputPin) {
@@ -26,19 +39,8 @@ class AuthService {
       return { ok: false, error: 'PIN incorrecto. Inténtalo de nuevo.' };
     }
 
-    // Generar token seguro
-    const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = Date.now() + TOKEN_EXPIRY_MS;
-
-    activeTokens.set(token, { expiresAt, createdAt: Date.now() });
-
-    // Guardar también en la base de datos local para persistencia entre reinicios
-    const all = db.getAll();
-    if (!all.authTokens) all.authTokens = {};
-    all.authTokens[token] = { expiresAt, createdAt: Date.now() };
-
-    this.cleanExpiredTokens();
-    db.saveData();
+    const token = this.generateToken(expiresAt);
 
     return {
       ok: true,
@@ -49,43 +51,46 @@ class AuthService {
   }
 
   validateToken(token) {
-    if (!token) return false;
-    const cleanToken = String(token).trim();
+    if (!token || typeof token !== 'string') return false;
+    const cleanToken = token.trim();
 
-    // 1. Comprobar en memoria
-    if (activeTokens.has(cleanToken)) {
-      const info = activeTokens.get(cleanToken);
-      if (info.expiresAt > Date.now()) return true;
-      activeTokens.delete(cleanToken);
-    }
+    // 1. Validación de token criptográfico HMAC sin estado
+    try {
+      const parts = cleanToken.split('.');
+      if (parts.length === 3) {
+        const [expiresAtStr, createdAtStr, signature] = parts;
+        const expiresAt = parseInt(expiresAtStr, 10);
 
-    // 2. Comprobar en persistencia
-    const all = db.getAll();
-    if (all.authTokens && all.authTokens[cleanToken]) {
-      const info = all.authTokens[cleanToken];
-      if (info.expiresAt > Date.now()) {
-        activeTokens.set(cleanToken, info);
-        return true;
-      } else {
-        delete all.authTokens[cleanToken];
-        db.saveData();
-      }
-    }
+        // Comprobar si ha expirado
+        if (isNaN(expiresAt) || expiresAt <= Date.now()) {
+          return false;
+        }
 
-    return false;
-  }
+        // Comprobar firma criptográfica
+        const payload = `${expiresAtStr}.${createdAtStr}`;
+        const expectedHmac = crypto.createHmac('sha256', this.getSecret()).update(payload).digest('hex');
 
-  cleanExpiredTokens() {
-    const now = Date.now();
-    const all = db.getAll();
-    if (all.authTokens) {
-      for (const [t, data] of Object.entries(all.authTokens)) {
-        if (data.expiresAt <= now) {
-          delete all.authTokens[t];
-          activeTokens.delete(t);
+        if (signature.length === expectedHmac.length &&
+            crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedHmac))) {
+          return true;
         }
       }
+    } catch (e) {
+      // Continuar con comprobación de respaldo
     }
+
+    // 2. Comprobación de respaldo para tokens heredados en base de datos local
+    try {
+      const all = db.getAll();
+      if (all.authTokens && all.authTokens[cleanToken]) {
+        const info = all.authTokens[cleanToken];
+        if (info.expiresAt > Date.now()) {
+          return true;
+        }
+      }
+    } catch (e) {}
+
+    return false;
   }
 
   changePin(currentPin, newPin) {
@@ -119,7 +124,7 @@ class AuthService {
         return next();
       }
 
-      // Extraer token
+      // Extraer token de las cabeceras
       let token = null;
       const authHeader = req.headers['authorization'];
       if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -134,7 +139,7 @@ class AuthService {
         return next();
       }
 
-      // En tests existentes permitimos bypass a menos que se fuerce la prueba de auth
+      // En tests automáticos permitir bypass si no se exige explícitamente en el test
       if (process.env.NODE_ENV === 'test' && !req.headers['x-require-auth-test']) {
         return next();
       }

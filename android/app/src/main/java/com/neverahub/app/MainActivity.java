@@ -13,6 +13,7 @@ import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -113,7 +114,18 @@ public class MainActivity extends AppCompatActivity {
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
         mWebView.addJavascriptInterface(new AndroidBridge(), "AndroidBridge");
-        mWebView.setWebChromeClient(new WebChromeClient());
+        mWebView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onPermissionRequest(final PermissionRequest request) {
+                if (Build.VERSION.SDK_INT >= 21) {
+                    runOnUiThread(() -> {
+                        try {
+                            request.grant(request.getResources());
+                        } catch (Exception ignored) {}
+                    });
+                }
+            }
+        });
         mWebView.setWebViewClient(new WebViewClient() {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
@@ -169,38 +181,50 @@ public class MainActivity extends AppCompatActivity {
         public void startListening() {
             runOnUiThread(() -> {
                 try {
-                    if (mSpeechRecognizer == null && SpeechRecognizer.isRecognitionAvailable(MainActivity.this)) {
-                        mSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(MainActivity.this);
-                        mSpeechRecognizer.setRecognitionListener(new RecognitionListener() {
-                            @Override public void onReadyForSpeech(Bundle params) { notifyVoiceState("listening"); }
-                            @Override public void onBeginningOfSpeech() {}
-                            @Override public void onRmsChanged(float rmsdB) {}
-                            @Override public void onBufferReceived(byte[] buffer) {}
-                            @Override public void onEndOfSpeech() { notifyVoiceState("processing"); }
-                            @Override public void onError(int error) { notifyVoiceState("error"); }
-                            @Override public void onResults(Bundle results) {
-                                ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                                if (matches != null && !matches.isEmpty()) {
-                                    notifyVoiceResult(matches.get(0));
-                                } else {
-                                    notifyVoiceState("idle");
-                                }
-                            }
-                            @Override public void onPartialResults(Bundle partialResults) {}
-                            @Override public void onEvent(int eventType, Bundle params) {}
-                        });
+                    if (!SpeechRecognizer.isRecognitionAvailable(MainActivity.this)) {
+                        notifyVoiceState("unsupported");
+                        return;
                     }
                     if (mSpeechRecognizer != null) {
-                        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-                        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-                        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-ES");
-                        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
-                        mSpeechRecognizer.startListening(intent);
-                    } else {
-                        notifyVoiceState("error");
+                        try {
+                            mSpeechRecognizer.cancel();
+                            mSpeechRecognizer.destroy();
+                        } catch (Exception ignored) {}
+                        mSpeechRecognizer = null;
                     }
+                    mSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(MainActivity.this);
+                    mSpeechRecognizer.setRecognitionListener(new RecognitionListener() {
+                        @Override public void onReadyForSpeech(Bundle params) { notifyVoiceState("listening"); }
+                        @Override public void onBeginningOfSpeech() {}
+                        @Override public void onRmsChanged(float rmsdB) {}
+                        @Override public void onBufferReceived(byte[] buffer) {}
+                        @Override public void onEndOfSpeech() { notifyVoiceState("processing"); }
+                        @Override public void onError(int error) {
+                            // Ignorar silencios o ausencias de voz no críticas; retornar a idle
+                            if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                                notifyVoiceState("idle");
+                            } else {
+                                notifyVoiceState("idle");
+                            }
+                        }
+                        @Override public void onResults(Bundle results) {
+                            ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                            if (matches != null && !matches.isEmpty()) {
+                                notifyVoiceResult(matches.get(0));
+                            } else {
+                                notifyVoiceState("idle");
+                            }
+                        }
+                        @Override public void onPartialResults(Bundle partialResults) {}
+                        @Override public void onEvent(int eventType, Bundle params) {}
+                    });
+                    Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-ES");
+                    intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+                    mSpeechRecognizer.startListening(intent);
                 } catch (Exception e) {
-                    notifyVoiceState("error");
+                    notifyVoiceState("unsupported");
                 }
             });
         }
@@ -274,17 +298,35 @@ public class MainActivity extends AppCompatActivity {
                 if (frontCameraId == -1 && numberOfCameras > 0) frontCameraId = 0;
                 if (frontCameraId != -1) {
                     camera = android.hardware.Camera.open(frontCameraId);
-                    android.graphics.SurfaceTexture dummyTexture = new android.graphics.SurfaceTexture(0);
+                    android.hardware.Camera.Parameters parameters = camera.getParameters();
+                    android.hardware.Camera.Size size = parameters.getPreviewSize();
+                    android.graphics.SurfaceTexture dummyTexture = new android.graphics.SurfaceTexture(10);
                     camera.setPreviewTexture(dummyTexture);
                     camera.startPreview();
+
+                    // Breve pausa para que el sensor ajuste exposición y balance de blancos
+                    try { Thread.sleep(250); } catch (InterruptedException ignored) {}
+
                     final android.hardware.Camera camRef = camera;
-                    camRef.takePicture(null, null, (data, cam) -> {
-                        try {
-                            String base64 = android.util.Base64.encodeToString(data, android.util.Base64.NO_WRAP);
-                            notifyPhotoCaptured("data:image/jpeg;base64," + base64);
-                        } finally {
-                            try { cam.stopPreview(); cam.release(); } catch (Exception ignored) {}
-                        }
+                    final int width = size.width;
+                    final int height = size.height;
+                    final int format = parameters.getPreviewFormat();
+
+                    camRef.setOneShotPreviewCallback((data, cam) -> {
+                        new Thread(() -> {
+                            try {
+                                android.graphics.YuvImage yuv = new android.graphics.YuvImage(data, format, width, height, null);
+                                java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+                                yuv.compressToJpeg(new android.graphics.Rect(0, 0, width, height), 80, out);
+                                byte[] jpegBytes = out.toByteArray();
+                                String base64 = android.util.Base64.encodeToString(jpegBytes, android.util.Base64.NO_WRAP);
+                                notifyPhotoCaptured("data:image/jpeg;base64," + base64);
+                            } catch (Exception e) {
+                                notifyPhotoCaptured(null);
+                            } finally {
+                                try { cam.stopPreview(); cam.release(); } catch (Exception ignored) {}
+                            }
+                        }).start();
                     });
                     return;
                 }

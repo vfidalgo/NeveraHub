@@ -439,6 +439,11 @@
       <div class="voice-hud-transcript" id="voice-hud-transcript"></div>
       <div class="voice-hud-response" id="voice-hud-response" style="display: none;"></div>
 
+      <form class="voice-hud-input-bar" id="voice-hud-input-form" onsubmit="event.preventDefault(); NeveraVoice.submitManualInput();">
+        <input type="text" id="voice-hud-input-text" placeholder="Escribe o pulsa el micro del teclado..." autocomplete="off" />
+        <button type="submit" class="voice-hud-submit-btn">Enviar</button>
+      </form>
+
       <div class="voice-hud-suggestions">
         <div class="suggestion-chip" onclick="NeveraVoice.sendManualQuery('¿Qué hay hoy de comer?')">🍲 ¿Qué hay de comer?</div>
         <div class="suggestion-chip" onclick="NeveraVoice.sendManualQuery('Apunta el menu de guillermo para el lunes, merluza y pasta')">👦 Menú Guille lunes</div>

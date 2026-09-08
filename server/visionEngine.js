@@ -71,16 +71,27 @@ class VisionEngine {
       // Limpiar cabecera data:image/jpeg;base64, si viene incluida
       const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
 
-      const prompt = `Eres el sistema de reconocimiento facial del asistente de cocina NeveraHub.
+      const prompt = `Eres el sistema de reconocimiento facial inteligente del asistente de cocina NeveraHub.
 Analiza la fotografía tomada por la cámara frontal de la pantalla de la nevera.
-Los miembros de la familia registrados son:
-${members.map(m => `- ID: "${m.id}", Nombre: "${m.name}", Rol: "${m.role}"`).join('\n')}
+La familia registrada está compuesta por:
+- Papá (o Victor): Hombre adulto. ID: "m1"
+- Mamá: Mujer adulta. ID: "m2"
+- Guille: Niño de aproximadamente 4 a 6 años. ID: "m3"
+- Samuel: Bebé o niño pequeño de aproximadamente 1 a 3 años. ID: "m4"
+${members.filter(m => !['m1','m2','m3','m4'].includes(m.id)).map(m => `- ${m.name}: Rol "${m.role}". ID: "${m.id}"`).join('\n')}
 
-Identifica cuál de estos miembros aparece centrado frente a la cámara.
-Responde ÚNICAMENTE un JSON con esta estructura exacta, sin código markdown ni comentarios:
-{"identified": true, "memberId": "ID_DEL_MIEMBRO", "confidence": 0.95}
-Si no se distingue claramente ninguna cara humana de la familia o la imagen está demasiado oscura o vacía, responde:
-{"identified": false, "memberId": null, "confidence": 0.0}`;
+INSTRUCCIONES DE CLASIFICACIÓN:
+1. Si frente a la cámara se observa un hombre adulto, asigna memberId "m1" (o el ID del padre).
+2. Si se observa una mujer adulta, asigna memberId "m2" (Mamá).
+3. Si se observa un niño/a de unos 4 a 7 años, asigna memberId "m3" (Guille).
+4. Si se observa un bebé o niño de 1 a 3 años, asigna memberId "m4" (Samuel).
+5. Si no hay personas visibles frente a la cámara, o la imagen está completamente oscura o vacía, responde:
+{"identified": false, "memberId": null, "confidence": 0.0}
+6. Si hay una persona claramente visible que no encaja con ningún miembro de la familia, responde:
+{"identified": false, "isStranger": true, "confidence": 0.9}
+
+Responde ÚNICAMENTE un objeto JSON válido con esta estructura exacta, sin bloques markdown ni comentarios:
+{"identified": true, "memberId": "m1", "confidence": 0.95}`;
 
       const postData = JSON.stringify({
         contents: [
@@ -173,8 +184,8 @@ Si no se distingue claramente ninguna cara humana de la familia o la imagen est�
       return this.handleNoFaceDetected(1);
     }
 
-    // En intento 2, si hay presencia humana visible pero no es de la familia -> Desconocido!
-    return await this.handleStrangerDetected(imageBase64, db);
+    // En intento 2 sin API key: guiar amablemente a seleccionar avatar en vez de alarma de intruso
+    return this.handleNoFaceDetected(2);
   }
 
   async handleStrangerDetected(imageBase64, db) {
