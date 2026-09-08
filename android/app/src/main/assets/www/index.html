@@ -49,6 +49,7 @@
         </div>
         <button class="btn-icon-header" id="btn-night-mode" title="Modo Noche (atenuar brillo)">🌙 Modo Noche</button>
         <button class="btn-icon-header" id="btn-fullscreen" title="Pantalla Completa Kiosko">🖥️ Kiosko</button>
+        <button class="btn-icon-header" id="btn-lock-screen" onclick="NeveraAuth.lock()" title="Bloquear Panel con PIN">🔒 Bloquear</button>
       </div>
     </header>
 
@@ -465,6 +466,51 @@
     <div class="face-scan-text" id="face-scan-text">Iniciando cámara...</div>
   </div>
 
+  <!-- PANTALLA DE BLOQUEO TÁCTIL CON TECLADO PIN -->
+  <div class="pin-lock-overlay" id="pin-lock-overlay" style="display: none;">
+    <div class="pin-lock-card" id="pin-keypad-box">
+      <div class="pin-lock-icon">🔒</div>
+      <h2 class="pin-lock-title">NeveraHub Familiar</h2>
+      <p class="pin-lock-subtitle" id="pin-status-text">Introduce el PIN familiar para acceder</p>
+
+      <!-- Indicadores de dígitos (Dots) -->
+      <div class="pin-dots-container">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+
+      <!-- Mensaje de error -->
+      <div class="pin-error-msg" id="pin-error-msg" style="display: none;">PIN incorrecto. Inténtalo de nuevo.</div>
+
+      <!-- Teclado Numérico Táctil -->
+      <div class="pin-keypad-grid">
+        <button type="button" class="pin-key-btn" onclick="NeveraAuth.pressDigit(1)">1</button>
+        <button type="button" class="pin-key-btn" onclick="NeveraAuth.pressDigit(2)">2</button>
+        <button type="button" class="pin-key-btn" onclick="NeveraAuth.pressDigit(3)">3</button>
+        <button type="button" class="pin-key-btn" onclick="NeveraAuth.pressDigit(4)">4</button>
+        <button type="button" class="pin-key-btn" onclick="NeveraAuth.pressDigit(5)">5</button>
+        <button type="button" class="pin-key-btn" onclick="NeveraAuth.pressDigit(6)">6</button>
+        <button type="button" class="pin-key-btn" onclick="NeveraAuth.pressDigit(7)">7</button>
+        <button type="button" class="pin-key-btn" onclick="NeveraAuth.pressDigit(8)">8</button>
+        <button type="button" class="pin-key-btn" onclick="NeveraAuth.pressDigit(9)">9</button>
+        <button type="button" class="pin-key-btn pin-key-action" onclick="NeveraAuth.clearDigits()" title="Limpiar">C</button>
+        <button type="button" class="pin-key-btn" onclick="NeveraAuth.pressDigit(0)">0</button>
+        <button type="button" class="pin-key-btn pin-key-action" onclick="NeveraAuth.deleteDigit()" title="Borrar">⌫</button>
+      </div>
+
+      <!-- Opción de recordar dispositivo -->
+      <div class="pin-remember-row">
+        <label class="pin-remember-label">
+          <input type="checkbox" id="pin-remember-device" checked>
+          <span>Recordar este dispositivo (90 días)</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
   <script src="js/sync.js"></script>
   <script src="js/notifications.js"></script>
   <script src="js/assistant.js"></script>

@@ -8,10 +8,18 @@ const NeveraSync = {
   isOnline: true,
   apiBase: '/api',
 
+  getAuthHeaders() {
+    const token = window.NeveraAuth ? window.NeveraAuth.getToken() : (localStorage.getItem('neverahub_pin_token') || '');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  },
+
   // Detectar si el backend responde
   async checkConnection() {
     try {
-      const res = await fetch(`${this.apiBase}/status`, { method: 'GET', headers: { 'Accept': 'application/json' } });
+      const res = await fetch(`${this.apiBase}/status`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json', ...this.getAuthHeaders() }
+      });
       this.isOnline = res.ok;
       return res.ok;
     } catch (e) {
@@ -24,9 +32,18 @@ const NeveraSync = {
     const url = `${this.apiBase}${endpoint}`;
     try {
       const response = await fetch(url, {
-        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeaders(),
+          ...(options.headers || {})
+        },
         ...options
       });
+      if (response.status === 401) {
+        if (window.NeveraAuth && typeof window.NeveraAuth.lockUI === 'function') {
+          window.NeveraAuth.lockUI();
+        }
+      }
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       

@@ -207,7 +207,7 @@
   "habitLogs": {
     "2026-09-06": {
       "h2": false,
-      "h1": false
+      "h1": true
     }
   },
   "inventory": [
@@ -633,6 +633,40 @@
       "imageUrl": "/api/security/captures/capture_1788874300318_923.jpg",
       "status": "unresolved",
       "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788876018438_641",
+      "date": "2026-09-08T14:00:18.438Z",
+      "imageFile": "capture_1788876018438_275.jpg",
+      "imageUrl": "/api/security/captures/capture_1788876018438_275.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788876018730_706",
+      "date": "2026-09-08T14:00:18.730Z",
+      "imageFile": "capture_1788876018730_602.jpg",
+      "imageUrl": "/api/security/captures/capture_1788876018730_602.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
     }
-  ]
+  ],
+  "authTokens": {
+    "eb69092f21318a8312b222e89da8215e5bbdb74f9c0b7475bb8b501039e12314": {
+      "expiresAt": 1796651732266,
+      "createdAt": 1788875732266
+    },
+    "dcc6295cb6fa8f6350cd0e80f256e22a9ef15dba7caea5c77c740ebdd0e87ea1": {
+      "expiresAt": 1796651732286,
+      "createdAt": 1788875732286
+    },
+    "81409cf799bae20f8b2d3b061c64fc690fba3a8b4ac3a8e7321d7f3b96ddee04": {
+      "expiresAt": 1796651906142,
+      "createdAt": 1788875906142
+    },
+    "aeb2d1fc0f29e9030d184f6191fa960fd79158921b5e4bd01acb88daaec5fcca": {
+      "expiresAt": 1796651906165,
+      "createdAt": 1788875906165
+    }
+  }
 }

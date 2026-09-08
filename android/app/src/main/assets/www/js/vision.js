@@ -148,9 +148,10 @@
       this.updateScanHudStatus('Analizando rostro con Gemini...');
 
       try {
+        const authH = (window.NeveraSync && window.NeveraSync.getAuthHeaders) ? window.NeveraSync.getAuthHeaders() : {};
         const response = await fetch('/api/vision/identify', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authH },
           body: JSON.stringify({
             imageBase64: imageBase64,
             attemptNumber: attemptNumber

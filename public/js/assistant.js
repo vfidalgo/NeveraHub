@@ -335,9 +335,10 @@
       this.notifyInteraction('speech_result');
 
       try {
+        const authH = (window.NeveraSync && window.NeveraSync.getAuthHeaders) ? window.NeveraSync.getAuthHeaders() : {};
         const response = await fetch('/api/assistant/query', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authH },
           body: JSON.stringify({
             query: transcript,
             currentDate: new Date().toISOString()

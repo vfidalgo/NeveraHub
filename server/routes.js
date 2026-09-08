@@ -8,9 +8,50 @@ const assistantEngine = require('./assistantEngine');
 const visionEngine = require('./visionEngine');
 const notificationService = require('./notificationService');
 const supabaseClient = require('./supabaseClient');
+const authService = require('./authService');
 
+// -------------------------------------------------------------
+// AUTENTICACIÓN Y SEGURIDAD POR PIN FAMILIAR
+// -------------------------------------------------------------
+router.post('/auth/verify-pin', (req, res) => {
+  const { pin } = req.body || {};
+  const result = authService.verifyPin(pin);
+  if (result.ok) {
+    res.json(result);
+  } else {
+    res.status(401).json(result);
+  }
+});
 
+router.get('/auth/check', (req, res) => {
+  let token = null;
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7).trim();
+  } else if (req.headers['x-family-token']) {
+    token = req.headers['x-family-token'];
+  }
 
+  const isValid = authService.validateToken(token);
+  res.json({
+    ok: true,
+    authenticated: isValid,
+    pinEnabled: authService.isPinSecurityEnabled()
+  });
+});
+
+router.post('/auth/change-pin', (req, res) => {
+  const { currentPin, newPin } = req.body || {};
+  const result = authService.changePin(currentPin, newPin);
+  if (result.ok) {
+    res.json(result);
+  } else {
+    res.status(400).json(result);
+  }
+});
+
+// Proteger todas las rutas API siguientes con el middleware de PIN familiar
+router.use(authService.getMiddleware());
 
 // -------------------------------------------------------------
 // ESTADO GENERAL (Para el Dashboard y dispositivos móviles)
