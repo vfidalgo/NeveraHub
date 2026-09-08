@@ -4,7 +4,7 @@
 -- ==============================================================================
 
 -- 1. Miembros de la Familia
-CREATE TABLE IF NOT EXISTS family_members (
+CREATE TABLE IF NOT EXISTS public.family_members (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   role TEXT DEFAULT 'child',
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS family_members (
 );
 
 -- 2. Calendario Familiar
-CREATE TABLE IF NOT EXISTS family_events (
+CREATE TABLE IF NOT EXISTS public.family_events (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
   member_id TEXT NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS family_events (
 );
 
 -- 3. Rutinas y Hábitos Diarios
-CREATE TABLE IF NOT EXISTS family_habits (
+CREATE TABLE IF NOT EXISTS public.family_habits (
   id TEXT PRIMARY KEY,
   member_id TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS family_habits (
 );
 
 -- 4. Registro de Cumplimiento de Hábitos
-CREATE TABLE IF NOT EXISTS family_habit_logs (
+CREATE TABLE IF NOT EXISTS public.family_habit_logs (
   id BIGSERIAL PRIMARY KEY,
   habit_id TEXT NOT NULL,
   log_date DATE NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS family_habit_logs (
 );
 
 -- 5. Inventario de Nevera y Despensa (con soporte para unidades individualizadas)
-CREATE TABLE IF NOT EXISTS family_inventory (
+CREATE TABLE IF NOT EXISTS public.family_inventory (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   category TEXT DEFAULT 'other',
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS family_inventory (
 );
 
 -- 6. Menú Semanal (Guille 5 años, Samuel 2 años, Papás, Cenas)
-CREATE TABLE IF NOT EXISTS family_menus (
+CREATE TABLE IF NOT EXISTS public.family_menus (
   day_key TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   guille_lunch TEXT,
@@ -76,15 +76,65 @@ CREATE TABLE IF NOT EXISTS family_menus (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. HABILITAR SUPABASE REALTIME PARA NOTIFICACIONES INSTANTÁNEAS
--- Permite que cualquier inserción en estas tablas viaje vía WebSockets a todos los móviles
-ALTER PUBLICATION supabase_realtime ADD TABLE family_events;
-ALTER PUBLICATION supabase_realtime ADD TABLE family_habits;
-ALTER PUBLICATION supabase_realtime ADD TABLE family_inventory;
-ALTER PUBLICATION supabase_realtime ADD TABLE family_menus;
+-- 7. Desactivar RLS (Row Level Security) para acceso directo del panel familiar
+ALTER TABLE public.family_members DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.family_events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.family_habits DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.family_habit_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.family_inventory DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.family_menus DISABLE ROW LEVEL SECURITY;
 
--- 8. Datos iniciales de la familia
-INSERT INTO family_members (id, name, role, color, avatar, order_idx) VALUES
+-- 8. HABILITAR SUPABASE REALTIME (Idempotente y a prueba de fallos)
+DO $$
+BEGIN
+  -- Asegurar que la publicación supabase_realtime existe en el proyecto
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    CREATE PUBLICATION supabase_realtime;
+  END IF;
+
+  -- Añadir family_events
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'family_events') THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables 
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'family_events'
+    ) THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.family_events;
+    END IF;
+  END IF;
+
+  -- Añadir family_habits
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'family_habits') THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables 
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'family_habits'
+    ) THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.family_habits;
+    END IF;
+  END IF;
+
+  -- Añadir family_inventory
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'family_inventory') THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables 
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'family_inventory'
+    ) THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.family_inventory;
+    END IF;
+  END IF;
+
+  -- Añadir family_menus
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'family_menus') THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables 
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'family_menus'
+    ) THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.family_menus;
+    END IF;
+  END IF;
+END $$;
+
+-- 9. Datos iniciales de la familia
+INSERT INTO public.family_members (id, name, role, color, avatar, order_idx) VALUES
   ('m1', 'Papá', 'parent', '#2563EB', '👨', 1),
   ('m2', 'Mamá', 'parent', '#DB2777', '👩', 2),
   ('m3', 'Guille (5 años)', 'child', '#059669', '👦', 3),
@@ -95,7 +145,7 @@ ON CONFLICT (id) DO UPDATE SET
   color = EXCLUDED.color,
   avatar = EXCLUDED.avatar;
 
-INSERT INTO family_menus (day_key, name, guille_lunch, samuel_lunch, kids_lunch, parents_lunch, dinner) VALUES
+INSERT INTO public.family_menus (day_key, name, guille_lunch, samuel_lunch, kids_lunch, parents_lunch, dinner) VALUES
   ('monday', 'Lunes', 'Lentejas con verduras y fruta', 'Puré suave de lentejas con calabaza', 'Guille: Lentejas con verduras | Samuel: Puré suave de lentejas', 'Ensalada completa con atún y huevo duro', 'Pechuga de pollo a la plancha con calabacín'),
   ('tuesday', 'Martes', 'Macarrones boloñesa y plátano', 'Puré de verduras con ternera', 'Guille: Macarrones boloñesa | Samuel: Puré de verduras con ternera', 'Lentejas sobrantes del lunes', 'Tortilla francesa con ensalada de tomate y mozzarella'),
   ('wednesday', 'Miércoles', 'Merluza al vapor con patatas', 'Puré de merluza con zanahoria y patata', 'Guille: Merluza al vapor | Samuel: Puré de merluza con patata', 'Pechuga de pavo con arroz basmati', 'Crema casera de calabacín y huevo poché'),

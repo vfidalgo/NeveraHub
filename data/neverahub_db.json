@@ -207,7 +207,7 @@
   "habitLogs": {
     "2026-09-06": {
       "h2": false,
-      "h1": true
+      "h1": false
     }
   },
   "inventory": [
@@ -615,6 +615,22 @@
       "date": "2026-09-07T12:49:52.991Z",
       "imageFile": "capture_1788785392990_871.jpg",
       "imageUrl": "/api/security/captures/capture_1788785392990_871.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788874294792_532",
+      "date": "2026-09-08T13:31:34.792Z",
+      "imageFile": "capture_1788874294791_292.jpg",
+      "imageUrl": "/api/security/captures/capture_1788874294791_292.jpg",
+      "status": "unresolved",
+      "notes": "Persona no identificada detectada interactuando con la nevera"
+    },
+    {
+      "id": "sec_1788874300318_952",
+      "date": "2026-09-08T13:31:40.318Z",
+      "imageFile": "capture_1788874300318_923.jpg",
+      "imageUrl": "/api/security/captures/capture_1788874300318_923.jpg",
       "status": "unresolved",
       "notes": "Persona no identificada detectada interactuando con la nevera"
     }
